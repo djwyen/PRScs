@@ -9,7 +9,7 @@ from numpy import random
 import math
 
 
-def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None):
+def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None, error=None, preconditioned=False):
     # we will see a lot of squeezes because the base PRScs implementation typically works with 2Darrays with dimension 1 instead of 1Darrays
     n_iterations = len(unscaled_Q) if n_iterations is None else n_iterations
     sigma2 = np.squeeze(sigma2) # sigma2 sometimes comes in a 2darray
@@ -18,7 +18,11 @@ def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None):
     Q_sample = math.sqrt(N / sigma2)*cholesky_sample(0, unscaled_Q) # or however else you want to sample it
     Q_sample = np.squeeze(Q_sample)
     eta = Q_sample + ((N / sigma2)*beta_hat)
-    theta = cg_solve(scaled_Q, eta, n_iterations=n_iterations)
+    if not preconditioned:
+        theta = cg_solve(scaled_Q, eta, n_iterations=n_iterations, error=error)
+        return theta
+    preconditioner = linalg.inv(np.diag(np.diagonal(unscaled_Q).copy()))
+    theta = preconditioned_cg_solve(scaled_Q, eta, preconditioner, n_iterations=n_iterations, error=error)
     return theta
 
 def cholesky_sample(mu, A):
@@ -28,18 +32,21 @@ def cholesky_sample(mu, A):
     w = linalg.solve_triangular(C, z, lower=True, trans='T')
     return mu + w
 
-def cg_solve(A, b, n_iterations, x=None):
+def cg_solve(A, b, n_iterations, error=None, x=None):
     """Approximates a solution x to A@x = b. Algorithm adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain" """
     # the number of iterations one can perform tops off at the matrix dimension, which results in the exact answer. Alg is not well defined if we go over
     n = A.shape[0]
-    if n_iterations > n:
+    if n_iterations > n or error is None:
         n_iterations = n
+        error = 0
     if x is None:
         x = np.zeros(n)
     # print("A at x", (A @ x).shape)
     r = b - (A @ x)
     d = r
     delta_new = np.inner(r, r)
+
+    max_error = delta_new * error * error
     
     # print('CGM initialization')
     # print('n_iterations is', n_iterations)
@@ -49,6 +56,8 @@ def cg_solve(A, b, n_iterations, x=None):
     # print('d is', d.shape)
     # print('delta is', delta_new)
     for i in range(n_iterations):
+        if delta_new <= max_error:
+            break
         # print(f' === iteration {i} ===')
         q = A @ d
         # print('q is', q)
@@ -70,22 +79,27 @@ def cg_solve(A, b, n_iterations, x=None):
         # print('d is', d)
     return x
 
-def preconditioned_cg_solve(A, b, M_inv, n_iterations, x=None):
+def preconditioned_cg_solve(A, b, M_inv, n_iterations, error=None, x=None):
     """Approximates a solution x to M^-1Ax = M^-1bx with starting value `x` and `n_iterations` of the Conjugate Gradient method. Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain"""
     n = A.shape[0]
-    if n_iterations > n:
+    if n_iterations > n or error is None:
         n_iterations = n
+        error = 0
     if x is None:
         x = np.zeros(n)
     r = b - (A @ x)
     d = M_inv @ r
     delta_new = np.inner(r, d)
+
+    max_error = delta_new * error * error
     
     # print('initialization')
     # print('r is', r)
     # print('r is', r)
     # print('delta is', delta_new)
     for i in range(n_iterations):
+        if delta_new <= max_error:
+            break
         # print(f' === iteration {i} ===')
         q = A @ d
         # print('q is', q)
