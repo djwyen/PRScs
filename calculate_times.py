@@ -11,6 +11,41 @@ VANILLA_LOG = './vanilla.log'
 CGM_LOG = './cgm_mvn.log'
 
 def main():
+    van_size_to_times = {}
+    cgm_size_to_times = {}
+
+    with open(VANILLA_LOG) as van_f, open(CGM_LOG) as cgm_f:
+        for van_line, cgm_line in zip(van_f, cgm_f):
+            
+            if "MVN sampling" in van_line and "MVN sampling" in cgm_line:
+                van_blksize, van_time = process_line(van_line)
+                if van_blksize not in van_size_to_times:
+                    van_size_to_times[van_blksize] = []
+                van_size_to_times[van_blksize].append(van_time)
+
+                cgm_blksize, cgm_time = process_line(cgm_line)
+                if cgm_blksize not in cgm_size_to_times:
+                    cgm_size_to_times[cgm_blksize] = []
+                cgm_size_to_times[cgm_blksize].append(cgm_time)
+                assert van_blksize == cgm_blksize
+    
+    van_size_to_avg_time = {size: (sum(times) / len(times)) for size, times in van_size_to_times.items()}
+    cgm_size_to_avg_time = {size: (sum(times) / len(times)) for size, times in cgm_size_to_times.items()}
+    print("Vanilla block sizes to times:", van_size_to_avg_time)
+    print("CGM block sizes to times:", cgm_size_to_avg_time)
+
+    for size, vantime in van_size_to_avg_time.items():
+        ratio = cgm_size_to_avg_time[size] / vantime
+        print(f"On blocksize {size}, the factor is", ratio)
+
+
+def process_line(line):
+    # really scuffed extraction of relevant quantities from the log
+    time = float(line.split('took ')[1].split(' seconds')[0])
+    blocksize = int(line.split('size ')[1].split(' took')[0])
+    return blocksize, time
+
+def old_main():
     vanilla_avg = average_time(VANILLA_LOG)
     cgm_avg = average_time(CGM_LOG)
     print("Vanilla MVN sampling took, on average,", vanilla_avg)
@@ -31,6 +66,4 @@ def average_time(filepath):
 
 
 if __name__ == '__main__':
-    # TODO since the order of samplings is deterministic (as it depends only on block sequence) we could actually zip the two together and see what the blowup is on each sample? And also go back and record the block sizes
-    # that would be good, as it lets us plot the blowup as a function of the dimension
     main()
