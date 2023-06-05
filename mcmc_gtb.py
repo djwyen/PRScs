@@ -62,7 +62,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
 
                 end = time.time()
-                logging.info('MVN sampling took %(time_elapsed)f seconds' % {"time_elapsed": (end-start)})
+                logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
+                                                                                                              "time_elapsed": (end-start)})
 
                 quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
                 mm += blk_size[kk]
