@@ -66,6 +66,15 @@ python PRScs.py --ref_dir=PATH_TO_REFERENCE --bim_prefix=VALIDATION_BIM_PREFIX -
 
  - SEED (optional): Non-negative integer which seeds the random number generator.
 
+ - LOG_FILE (optional): The filename to write a log file to, if any
+
+ - USE_CGM (optional): If 'True', uses the conjugate gradient method based MVN sampler that I have put in to test.
+                       If 'Precond', uses CGM with a preconditioner, here always the diagonal/Jacobi preconditioner.
+                       If 'False', uses the default Cholesky MVN sampling technique that is the original implementation.
+
+ - ERR_TOL (optional): If using CGM, the error tolerance we will allow for premature abortion of the CGM method. (If not CGM, has no effect.)
+
+
 """
 
 
@@ -81,10 +90,10 @@ import gigrnd
 
 def parse_param():
     long_opts_list = ['ref_dir=', 'bim_prefix=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
-                      'n_iter=', 'n_burnin=', 'thin=', 'out_dir=', 'chrom=', 'beta_std=', 'seed=', 'help']
+                      'n_iter=', 'n_burnin=', 'thin=', 'out_dir=', 'chrom=', 'beta_std=', 'seed=', 'log_file=', 'use_cgm=', 'err_tol=', 'help']
 
     param_dict = {'ref_dir': None, 'bim_prefix': None, 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
-                  'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23), 'beta_std': 'False', 'seed': None}
+                  'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23), 'beta_std': 'False', 'seed': None, 'log_file': 'default_log', 'use_cgm': 'False', 'err_tol': 0.0}
 
     print('\n')
 
@@ -114,6 +123,9 @@ def parse_param():
             elif opt == "--chrom": param_dict['chrom'] = arg.split(',')
             elif opt == "--beta_std": param_dict['beta_std'] = arg
             elif opt == "--seed": param_dict['seed'] = int(arg)
+            elif opt == "--log_file": param_dict['log_file'] = arg
+            elif opt == "--use_cgm": param_dict['use_cgm'] = arg
+            elif opt == "--err_tol": param_dict['err_tol'] = float(arg)
     else:
         print(__doc__)
         sys.exit(0)
@@ -142,14 +154,14 @@ def parse_param():
 
 
 def main():
+    param_dict = parse_param()
+
     logging.basicConfig(
-        filename='cgm_mvn.log',
+        filename= param_dict['log_file'] + '.log',
         filemode='w',
-        format='%(asctime)s %(levelname)-8s %(message)s',
+        format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
-
-    param_dict = parse_param()
 
     for chrom in param_dict['chrom']:
         logging.info('##### process chromosome %d #####' % int(chrom))
@@ -166,7 +178,7 @@ def main():
         ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom))
 
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
-            param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'])
+            param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'], param_dict['use_cgm'], param_dict['err_tol'])
 
         print('\n')
 

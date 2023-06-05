@@ -15,8 +15,17 @@ import logging
 import time
 
 
-def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed):
+def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance):
     logging.info('... MCMC ...')
+    if use_cgm == 'False':
+        logging.info('Using vanilla Cholesky sampler')
+    else:
+        if use_cgm == 'True':
+            logging.info('Using conjugate gradient method (CGM) based sampler with no preconditioner')
+        elif use_cgm == 'Precond':
+            logging.info('Using conjugate gradient method (CGM) based sampler with a diagonal/Jacobi preconditioner')
+        logging.info('Error tolerance is %.12f' % error_tolerance)
+    preconditioned = True if use_cgm == 'Precond' else False
 
     # seed
     if seed != None:
@@ -56,19 +65,17 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 idx_blk = range(mm,mm+blk_size[kk]) # the indices corresponding to this particular block
 
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0]) # the precision matrix (without scaling) of the MVN of interest, i.e. (D + Psi^-1)
+
                 start = time.time()
-
-                # EXCISION SITE
-                # dinvt_chol = linalg.cholesky(dinvt) # the cholesky factor of Q, i.e. C such that C.TC = Q. Note that scipy uses the convention of upper-triangular Cholesky factor.
-                # beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1) # solving the lower-triangular system C.Tx = ^beta, then adding some rescaled MVN
-                # beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N') # solving the upper-triangular system Cx = beta_tmp
-                # I will spare you the arithmetic but if you write everything out in paper and write in the affine transformation steps, you find that indeed this double-Cholesky-triangle-solve method will yield `beta` distributed with the correct mean/covariance.
-                # INSERTION SITE
-
-                beta_hat = beta_mrg[idx_blk]
-                sample = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, n_iterations=None)
-                beta[idx_blk] = sample.reshape(len(idx_blk), 1)
-
+                if use_cgm == 'False':
+                    dinvt_chol = linalg.cholesky(dinvt) # the cholesky factor of Q, i.e. C such that C.TC = Q. Note that scipy uses the convention of upper-triangular Cholesky factor.
+                    beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1) # solving the lower-triangular system C.Tx = ^beta, then adding some rescaled MVN
+                    beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N') # solving the upper-triangular system Cx = beta_tmp
+                    # I will spare you the arithmetic but if you write everything out in paper and write in the affine transformation steps, you find that indeed this double-Cholesky-triangle-solve method will yield `beta` distributed with the correct mean/covariance.
+                else:
+                    beta_hat = beta_mrg[idx_blk]
+                    sample = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, n_iterations=None, error=error_tolerance, preconditioned=preconditioned)
+                    beta[idx_blk] = sample.reshape(len(idx_blk), 1)
                 end = time.time()
                 logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
                                                                                                               "time_elapsed": (end-start)})
