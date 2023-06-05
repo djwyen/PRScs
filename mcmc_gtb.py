@@ -10,10 +10,12 @@ import scipy as sp
 from scipy import linalg 
 from numpy import random
 import gigrnd
+import logging
+import time
 
 
 def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed):
-    print('... MCMC ...')
+    logging.info('... MCMC ...')
 
     # seed
     if seed != None:
@@ -43,7 +45,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
     # MCMC
     for itr in range(1,n_iter+1):
         if itr % 100 == 0:
-            print('--- iter-' + str(itr) + ' ---')
+            logging.info('--- iter-' + str(itr) + ' ---')
 
         mm = 0; quad = 0.0
         for kk in range(n_blk):
@@ -52,9 +54,16 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             else:
                 idx_blk = range(mm,mm+blk_size[kk])
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0])
+
+                start = time.time()
+
                 dinvt_chol = linalg.cholesky(dinvt)
                 beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1)
                 beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
+
+                end = time.time()
+                logging.info('MVN sampling took %(time_elapsed)f seconds' % {"time_elapsed": (end-start)})
+
                 quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
                 mm += blk_size[kk]
 
@@ -94,8 +103,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     # print estimated phi
     if phi_updt == True:
-        print('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
+        logging.info('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
 
-    print('... Done ...')
+    logging.info('... Done ...')
 
 

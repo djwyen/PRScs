@@ -72,6 +72,7 @@ python PRScs.py --ref_dir=PATH_TO_REFERENCE --bim_prefix=VALIDATION_BIM_PREFIX -
 import os
 import sys
 import getopt
+import logging
 
 import parse_genet
 import mcmc_gtb
@@ -141,10 +142,17 @@ def parse_param():
 
 
 def main():
+    logging.basicConfig(
+        filename='vanilla.log',
+        filemode='w',
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
+
     param_dict = parse_param()
 
     for chrom in param_dict['chrom']:
-        print('##### process chromosome %d #####' % int(chrom))
+        logging.info('##### process chromosome %d #####' % int(chrom))
 
         if '1kg' in os.path.basename(param_dict['ref_dir']):
             ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_1kg_hm3', int(chrom))
