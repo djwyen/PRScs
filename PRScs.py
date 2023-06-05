@@ -143,7 +143,7 @@ def parse_param():
 
 def main():
     logging.basicConfig(
-        filename='vanilla.log',
+        filename='cgm_mvn.log',
         filemode='w',
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
