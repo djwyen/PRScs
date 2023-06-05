@@ -11,10 +11,11 @@ import scipy as sp
 from scipy.stats import norm
 from scipy import linalg
 import h5py
+import logging
 
 
 def parse_ref(ref_file, chrom):
-    print('... parse reference file: %s ...' % ref_file)
+    logging.info('... parse reference file: %s ...' % ref_file)
 
     ref_dict = {'CHR':[], 'SNP':[], 'BP':[], 'A1':[], 'A2':[], 'MAF':[]}
     with open(ref_file) as ff:
@@ -29,12 +30,12 @@ def parse_ref(ref_file, chrom):
                 ref_dict['A2'].append(ll[4])
                 ref_dict['MAF'].append(float(ll[5]))
 
-    print('... %d SNPs on chromosome %d read from %s ...' % (len(ref_dict['SNP']), chrom, ref_file))
+    logging.info('... %d SNPs on chromosome %d read from %s ...' % (len(ref_dict['SNP']), chrom, ref_file))
     return ref_dict
 
 
 def parse_bim(bim_file, chrom):
-    print('... parse bim file: %s ...' % (bim_file + '.bim'))
+    logging.info('... parse bim file: %s ...' % (bim_file + '.bim'))
 
     vld_dict = {'SNP':[], 'A1':[], 'A2':[]}
     with open(bim_file + '.bim') as ff:
@@ -45,12 +46,12 @@ def parse_bim(bim_file, chrom):
                 vld_dict['A1'].append(ll[4])
                 vld_dict['A2'].append(ll[5])
 
-    print('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, bim_file + '.bim'))
+    logging.info('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, bim_file + '.bim'))
     return vld_dict
 
 
 def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
-    print('... parse sumstats file: %s ...' % sst_file)
+    logging.info('... parse sumstats file: %s ...' % sst_file)
 
     ATGC = ['A', 'T', 'G', 'C']
     sst_dict = {'SNP':[], 'A1':[], 'A2':[]}
@@ -63,7 +64,7 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
                 sst_dict['A1'].append(ll[1])
                 sst_dict['A2'].append(ll[2])
 
-    print('... %d SNPs read from %s ...' % (len(sst_dict['SNP']), sst_file))
+    logging.info('... %d SNPs read from %s ...' % (len(sst_dict['SNP']), sst_file))
 
 
     mapping = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
@@ -80,7 +81,7 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
 
     comm_snp = vld_snp & ref_snp & sst_snp
 
-    print('... %d common SNPs in the reference, sumstats, and validation set ...' % len(comm_snp))
+    logging.info('... %d common SNPs in the reference, sumstats, and validation set ...' % len(comm_snp))
 
 
     n_sqrt = sp.sqrt(n_subj)
@@ -147,7 +148,7 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
 
 
 def parse_ldblk(ldblk_dir, sst_dict, chrom):
-    print('... parse reference LD on chromosome %d ...' % chrom)
+    logging.info('... parse reference LD on chromosome %d ...' % chrom)
 
     if '1kg' in os.path.basename(ldblk_dir):
         chr_name = ldblk_dir + '/ldblk_1kg_chr' + str(chrom) + '.hdf5'
