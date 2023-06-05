@@ -1,9 +1,16 @@
 """
 Quick script to calculate the time blowup for CGM based sampling (in plaintext) over the vanilla method.
-Preliminary numbers (see the TODO below) when evaluated on the test dataset provided in the PRScs repo:
+Preliminary numbers when evaluated on the test dataset provided in the PRScs repo:
     Vanilla MVN sampling took, on average, 0.0023184492500000022 seconds
     CGM-based MVN sampling took, on average, 0.013257944250000023 seconds
     The blowup is about a factor of 5.718453509387799
+---
+Vanilla block sizes to times: {135: 0.003336923999999999, 176: 0.0017466090000000014, 511: 0.005111019000000006, 178: 0.0014734180000000004}
+CGM block sizes to times: {135: 0.005527726999999996, 176: 0.0038376510000000005, 511: 0.024762743000000014, 178: 0.003913789000000005}
+On blocksize 135, the factor is 1.6565336819178376
+On blocksize 176, the factor is 2.1972009762917732
+On blocksize 511, the factor is 4.844971814818138
+On blocksize 178, the factor is 2.6562652281972965
 """
 
 
