@@ -66,7 +66,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 # INSERTION SITE
 
                 beta_hat = beta_mrg[idx_blk]
-                beta[idx_blk] = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, n_iterations=None)
+                sample = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, n_iterations=None)
+                beta[idx_blk] = sample.reshape(len(idx_blk), 1)
 
                 end = time.time()
                 logging.info('MVN sampling took %(time_elapsed)f seconds' % {"time_elapsed": (end-start)})

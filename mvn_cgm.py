@@ -10,9 +10,13 @@ import math
 
 
 def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None):
+    # we will see a lot of squeezes because the base PRScs implementation typically works with 2Darrays with dimension 1 instead of 1Darrays
     n_iterations = len(unscaled_Q) if n_iterations is None else n_iterations
+    sigma2 = np.squeeze(sigma2) # sigma2 sometimes comes in a 2darray
+    beta_hat = np.squeeze(beta_hat)
     scaled_Q = (N / sigma2)*unscaled_Q
     Q_sample = math.sqrt(N / sigma2)*cholesky_sample(0, unscaled_Q) # or however else you want to sample it
+    Q_sample = np.squeeze(Q_sample)
     eta = Q_sample + ((N / sigma2)*beta_hat)
     theta = cg_solve(scaled_Q, eta, n_iterations=n_iterations)
     return theta
@@ -32,13 +36,17 @@ def cg_solve(A, b, n_iterations, x=None):
         n_iterations = n
     if x is None:
         x = np.zeros(n)
+    # print("A at x", (A @ x).shape)
     r = b - (A @ x)
     d = r
     delta_new = np.inner(r, r)
     
-    # print('initialization')
-    # print('r is', r)
-    # print('r is', r)
+    # print('CGM initialization')
+    # print('n_iterations is', n_iterations)
+    # print('n is', n)
+    # print('x is', x.shape)
+    # print('r is', r.shape)
+    # print('d is', d.shape)
     # print('delta is', delta_new)
     for i in range(n_iterations):
         # print(f' === iteration {i} ===')
