@@ -8,6 +8,8 @@ import numpy as np
 from numpy import random
 import math
 
+# TODO could wrap these in a class so that we can precompute and retain the Cholesky factor of the LD portion.
+# We would have to change the signatures of the functions somewhat to take in the LD / Psi separately though instead of combined as an unscaled precision matrix
 
 def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, max_iterations=None, error=None, preconditioned=False):
     # we will see a lot of squeezes because the base PRScs implementation typically works with 2Darrays with dimension 1 instead of 1Darrays
@@ -80,6 +82,9 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
         d = r + (beta * d)
         # print('d is', d)
         n_iterations += 1
+    # TODO see if we can explicitly calculate the condition number or use Gershgorin circle theorem to bound the eigenvalues, which could more rigorously argue that the blowup phenomenon really does have to do with Psi_inv
+    # when we refactor to take in LD/Psi separately, that would also let us explicitly look at Psi
+    # print('trace of A is', np.trace(A), 'and the  number of iterations is', n_iterations)
     return x, n_iterations
 
 def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
