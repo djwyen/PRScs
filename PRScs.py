@@ -97,7 +97,7 @@ def parse_param():
 
     param_dict = {'ref_dir': None, 'bim_prefix': None, 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
                   'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23), 'beta_std': 'False', 'seed': None,
-                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': 0.0}
+                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': None}
 
     print('\n')
 
@@ -188,7 +188,21 @@ def main():
 
         mvn_output_file = None
         if param_dict['mvn_dir'] is not None:
-            mvn_output_file = os.path.join(param_dict['mvn_dir'], param_dict['use_cgm'], '.csv')
+            sampler_type = ''
+            if param_dict['use_cgm'] == 'False':
+                sampler_type = 'vanilla'
+            else:
+                if param_dict['use_cgm'] == 'Precond':
+                    sampler_type = 'preconditioned_cgm'
+                elif param_dict['use_cgm'] == 'True':
+                    sampler_type = 'nonpreconditioned_cgm'
+            
+            error_tolerance = ''
+            if param_dict['err_tol'] is not None:
+                error_tolerance = '_' + str(param_dict['err_tol'])
+
+            filename = sampler_type + error_tolerance + '.csv'
+            mvn_output_file = os.path.join(param_dict['mvn_dir'], filename)
 
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
             param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'],

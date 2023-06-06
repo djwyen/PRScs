@@ -26,7 +26,11 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             logging.info('Using conjugate gradient method (CGM) based sampler with no preconditioner')
         elif use_cgm == 'Precond':
             logging.info('Using conjugate gradient method (CGM) based sampler with a diagonal/Jacobi preconditioner')
-        logging.info('Error tolerance is %.12f' % error_tolerance)
+
+        if error_tolerance is not None:
+            logging.info('Error tolerance is %.12f' % error_tolerance)
+        else:
+            logging.info('No error tolerance; exact solution desired.')
     preconditioned = True if use_cgm == 'Precond' else False
 
     # for use with `mvn_output_file`
@@ -132,7 +136,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     # save the samples to file
     if mvn_output_file is not None:
-        with open(mvn_output_file, 'w', newline='') as f:
+        with open(mvn_output_file, 'w+', newline='') as f:
             logging.info('Logging MVN samples in %s' % mvn_output_file)
             writer = csv.writer(f)
             writer.writerow(['mcmc_iteration', 'block_number', 'block_size', 'sampling_time', 'n_iterations'])
