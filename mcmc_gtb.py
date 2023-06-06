@@ -133,6 +133,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
     # save the samples to file
     if mvn_output_file is not None:
         with open(mvn_output_file, 'w', newline='') as f:
+            logging.info('Logging MVN samples in %s' % mvn_output_file)
             writer = csv.writer(f)
             writer.writerow(['mcmc_iteration', 'block_number', 'block_size', 'sampling_time', 'n_iterations'])
             writer.writerows(samples)

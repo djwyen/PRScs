@@ -186,13 +186,13 @@ def main():
 
         ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom))
 
-        output_filename = None
+        mvn_output_file = None
         if param_dict['mvn_dir'] is not None:
-            output_filename = os.path.join(param_dict['mvn_dir'], param_dict['use_cgm'], '.csv')
+            mvn_output_file = os.path.join(param_dict['mvn_dir'], param_dict['use_cgm'], '.csv')
 
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
             param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'],
-            param_dict['use_cgm'], param_dict['err_tol'], mvn_output_file=output_filename)
+            param_dict['use_cgm'], param_dict['err_tol'], mvn_output_file=mvn_output_file)
 
         print('\n')
     
