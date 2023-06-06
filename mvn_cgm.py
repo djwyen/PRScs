@@ -9,9 +9,9 @@ from numpy import random
 import math
 
 
-def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None, error=None, preconditioned=False):
+def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, max_iterations=None, error=None, preconditioned=False):
     # we will see a lot of squeezes because the base PRScs implementation typically works with 2Darrays with dimension 1 instead of 1Darrays
-    n_iterations = len(unscaled_Q) if n_iterations is None else n_iterations
+    max_iterations = len(unscaled_Q) if max_iterations is None else max_iterations
     sigma2 = np.squeeze(sigma2) # sigma2 sometimes comes in a 2darray
     beta_hat = np.squeeze(beta_hat)
     scaled_Q = (N / sigma2)*unscaled_Q
@@ -19,11 +19,12 @@ def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, n_iterations=None, error
     Q_sample = np.squeeze(Q_sample)
     eta = Q_sample + ((N / sigma2)*beta_hat)
     if not preconditioned:
-        theta = cg_solve(scaled_Q, eta, n_iterations=n_iterations, error=error)
-        return theta
+        theta, n_iterations = cg_solve(scaled_Q, eta, max_iterations=max_iterations, error=error)
+        # where n_iterations is the number of iterations actually performed
+        return theta, n_iterations
     preconditioner = linalg.inv(np.diag(np.diagonal(unscaled_Q).copy()))
-    theta = preconditioned_cg_solve(scaled_Q, eta, preconditioner, n_iterations=n_iterations, error=error)
-    return theta
+    theta, n_iterations = preconditioned_cg_solve(scaled_Q, eta, preconditioner, max_iterations=max_iterations, error=error)
+    return theta, n_iterations
 
 def cholesky_sample(mu, A):
     # Cholesky sample from the MVN with mean mu and covariance matrix A
@@ -32,12 +33,12 @@ def cholesky_sample(mu, A):
     w = linalg.solve_triangular(C, z, lower=True, trans='T')
     return mu + w
 
-def cg_solve(A, b, n_iterations, error=None, x=None):
+def cg_solve(A, b, max_iterations, error=None, x=None):
     """Approximates a solution x to A@x = b. Algorithm adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain" """
     # the number of iterations one can perform tops off at the matrix dimension, which results in the exact answer. Alg is not well defined if we go over
     n = A.shape[0]
-    if n_iterations > n or error is None:
-        n_iterations = n
+    if max_iterations > n or error is None:
+        max_iterations = n
         error = 0
     if x is None:
         x = np.zeros(n)
@@ -47,15 +48,16 @@ def cg_solve(A, b, n_iterations, error=None, x=None):
     delta_new = np.inner(r, r)
 
     max_error = delta_new * error * error
+    n_iterations = 0
     
     # print('CGM initialization')
-    # print('n_iterations is', n_iterations)
+    # print('max_iterations is', max_iterations)
     # print('n is', n)
     # print('x is', x.shape)
     # print('r is', r.shape)
     # print('d is', d.shape)
     # print('delta is', delta_new)
-    for i in range(n_iterations):
+    for i in range(max_iterations):
         if delta_new <= max_error:
             break
         # print(f' === iteration {i} ===')
@@ -77,13 +79,14 @@ def cg_solve(A, b, n_iterations, error=None, x=None):
         # print('beta is', beta)
         d = r + (beta * d)
         # print('d is', d)
-    return x
+        n_iterations += 1
+    return x, n_iterations
 
-def preconditioned_cg_solve(A, b, M_inv, n_iterations, error=None, x=None):
-    """Approximates a solution x to M^-1Ax = M^-1bx with starting value `x` and `n_iterations` of the Conjugate Gradient method. Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain"""
+def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
+    """Approximates a solution x to M^-1Ax = M^-1bx with starting value `x` and `max_iterations` of the Conjugate Gradient method. Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain"""
     n = A.shape[0]
-    if n_iterations > n or error is None:
-        n_iterations = n
+    if max_iterations > n or error is None:
+        max_iterations = n
         error = 0
     if x is None:
         x = np.zeros(n)
@@ -92,12 +95,13 @@ def preconditioned_cg_solve(A, b, M_inv, n_iterations, error=None, x=None):
     delta_new = np.inner(r, d)
 
     max_error = delta_new * error * error
+    n_iterations = 0
     
     # print('initialization')
     # print('r is', r)
     # print('r is', r)
     # print('delta is', delta_new)
-    for i in range(n_iterations):
+    for i in range(max_iterations):
         if delta_new <= max_error:
             break
         # print(f' === iteration {i} ===')
@@ -121,4 +125,5 @@ def preconditioned_cg_solve(A, b, M_inv, n_iterations, error=None, x=None):
         # print('beta is', beta)
         d = s + (beta * d)
         # print('d is', d)
-    return x
+        n_iterations += 1
+    return x, n_iterations

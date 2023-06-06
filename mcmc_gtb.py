@@ -13,9 +13,10 @@ import gigrnd
 import mvn_cgm
 import logging
 import time
+import csv
 
 
-def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance):
+def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, output_file=None):
     logging.info('... MCMC ...')
     if use_cgm == 'False':
         logging.info('Using vanilla Cholesky sampler')
@@ -26,6 +27,9 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             logging.info('Using conjugate gradient method (CGM) based sampler with a diagonal/Jacobi preconditioner')
         logging.info('Error tolerance is %.12f' % error_tolerance)
     preconditioned = True if use_cgm == 'Precond' else False
+
+    # each entry is of the form (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
+    samples = []
 
     # seed
     if seed != None:
@@ -72,13 +76,16 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                     beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1) # solving the lower-triangular system C.Tx = ^beta, then adding some rescaled MVN
                     beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N') # solving the upper-triangular system Cx = beta_tmp
                     # I will spare you the arithmetic but if you write everything out in paper and write in the affine transformation steps, you find that indeed this double-Cholesky-triangle-solve method will yield `beta` distributed with the correct mean/covariance.
+                    n_iterations = None
                 else:
                     beta_hat = beta_mrg[idx_blk]
-                    sample = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, n_iterations=None, error=error_tolerance, preconditioned=preconditioned)
+                    sample, n_iterations = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, max_iterations=None, error=error_tolerance, preconditioned=preconditioned)
                     beta[idx_blk] = sample.reshape(len(idx_blk), 1)
                 end = time.time()
-                logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
-                                                                                                              "time_elapsed": (end-start)})
+                # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
+                samples.append(itr, kk, len(idx_blk), (end-start), n_iterations)
+                # logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
+                #                                                                                               "time_elapsed": (end-start)})
 
                 quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
                 mm += blk_size[kk]
@@ -120,6 +127,13 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
     # print estimated phi
     if phi_updt == True:
         logging.info('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
+
+    # save the samples to file
+    if output_file is not None:
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['mcmc_iteration', 'block_number', 'block_size', 'sampling_time', 'n_iterations'])
+            writer.writerows(samples)
 
     logging.info('... Done ...')
 
