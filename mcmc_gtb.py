@@ -16,7 +16,8 @@ import time
 import csv
 
 
-def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, output_file=None):
+def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, mvn_output_file=None):
+    # where `mvn_output_file` is a parameter I have added for saving MVN-performance-pertinent information
     logging.info('... MCMC ...')
     if use_cgm == 'False':
         logging.info('Using vanilla Cholesky sampler')
@@ -28,6 +29,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         logging.info('Error tolerance is %.12f' % error_tolerance)
     preconditioned = True if use_cgm == 'Precond' else False
 
+    # for use with `mvn_output_file`
     # each entry is of the form (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
     samples = []
 
@@ -83,7 +85,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                     beta[idx_blk] = sample.reshape(len(idx_blk), 1)
                 end = time.time()
                 # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
-                samples.append(itr, kk, len(idx_blk), (end-start), n_iterations)
+                samples.append( (itr, kk, len(idx_blk), (end-start), n_iterations) )
                 # logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
                 #                                                                                               "time_elapsed": (end-start)})
 
@@ -129,8 +131,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         logging.info('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
 
     # save the samples to file
-    if output_file is not None:
-        with open(output_file, 'w', newline='') as f:
+    if mvn_output_file is not None:
+        with open(mvn_output_file, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['mcmc_iteration', 'block_number', 'block_size', 'sampling_time', 'n_iterations'])
             writer.writerows(samples)
