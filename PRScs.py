@@ -76,6 +76,8 @@ python PRScs.py --ref_dir=PATH_TO_REFERENCE --bim_prefix=VALIDATION_BIM_PREFIX -
 
  - ERR_TOL (optional): If using CGM, the error tolerance we will allow for premature abortion of the CGM method. (If not CGM, has no effect.)
 
+ - TRIALS_FILE (optional): The path to a file containing list of configurations under which separate PRScs executions will be run under the same settings (i.e. files to analyze, mcmc iterations, etc.).
+                           This is to allow for comparing either multiple runs of the same settings; or comparing between different MVN samplers at different error rates under the same settings.
 
 """
 
@@ -84,6 +86,7 @@ import os
 import sys
 import getopt
 import logging
+import csv
 
 import parse_genet
 import mcmc_gtb
@@ -93,11 +96,12 @@ import gigrnd
 def parse_param():
     long_opts_list = ['ref_dir=', 'bim_prefix=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
                       'n_iter=', 'n_burnin=', 'thin=', 'out_dir=', 'chrom=', 'beta_std=', 'seed=',
-                      'log_file=', 'mvn_dir=', 'use_cgm=', 'err_tol=', 'help']
+                      'log_file=', 'mvn_dir=', 'use_cgm=', 'err_tol=', 'trials_file=',
+                      'help']
 
     param_dict = {'ref_dir': None, 'bim_prefix': None, 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
                   'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23), 'beta_std': 'False', 'seed': None,
-                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': None}
+                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': None, 'trials_file': None}
 
     print('\n')
 
@@ -131,6 +135,7 @@ def parse_param():
             elif opt == "--mvn_dir": param_dict['mvn_dir'] = arg
             elif opt == "--use_cgm": param_dict['use_cgm'] = arg
             elif opt == "--err_tol": param_dict['err_tol'] = float(arg)
+            elif opt == "--trials_file": param_dict['trials_file'] = arg
     else:
         print(__doc__)
         sys.exit(0)
@@ -158,20 +163,8 @@ def parse_param():
     return param_dict
 
 
-def main():
-    param_dict = parse_param()
-
-    logging.basicConfig(
-        filename= param_dict['log_file'] + '.log',
-        filemode='a',
-        format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-        level=logging.INFO,
-        datefmt='%Y-%m-%d %H:%M:%S')
-    
-    command_list = ' '.join(['--%s=%s' % (key, param_dict[key]) for key in param_dict])
+def prscs_wrapper(param_dict):
     logging.info('=== Running PRScs ===')
-    logging.info('Features are: %s' % command_list)
-
     for chrom in param_dict['chrom']:
         logging.info('##### process chromosome %d #####' % int(chrom))
 
@@ -207,11 +200,38 @@ def main():
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
             param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'],
             param_dict['use_cgm'], param_dict['err_tol'], mvn_output_file=mvn_output_file)
-
-        print('\n')
-    
     logging.info('=== Done with PRScs ===')
 
+def main():
+    param_dict = parse_param()
+
+    logging.basicConfig(
+        filename= param_dict['log_file'] + '.log',
+        filemode='a',
+        format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
+    
+    logging.info('Running PRScs.py script')
+    command_list = ' '.join(['--%s=%s' % (key, param_dict[key]) for key in param_dict])
+    logging.info('Features are: %s' % command_list)
+
+    if param_dict['trials_file'] is not None:
+        with open(param_dict['trials_file']) as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            for line in reader:
+                use_cgm, err_tol, n_trials = line
+                err_tol = float(err_tol) if err_tol != 'None' else None
+                n_trials = int(n_trials)
+                # create copy of param dict for each trial
+                trial_param_dict = {**param_dict}
+                trial_param_dict['use_cgm'] = use_cgm
+                trial_param_dict['err_tol'] = err_tol
+                for _ in range(n_trials):
+                    prscs_wrapper(trial_param_dict)
+    else:
+        prscs_wrapper(param_dict)
 
 if __name__ == '__main__':
     main()
