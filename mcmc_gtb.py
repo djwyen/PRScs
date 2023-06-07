@@ -129,7 +129,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     errtol_string = 'exact'
     if error_tolerance is not None and error_tolerance != 0.0:
-        errtol_string = 'errtol' + error_tolerance
+        errtol_string = 'errtol' + str(error_tolerance)
 
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
