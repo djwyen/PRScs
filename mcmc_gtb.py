@@ -14,6 +14,7 @@ import mvn_cgm
 import logging
 import time
 import csv
+import os
 
 
 def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, mvn_output_file=None):
@@ -121,14 +122,29 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         beta_est /= sp.sqrt(2.0*maf*(1.0-maf))
 
     # write posterior effect sizes
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    cgm_type = 'vanilla' if use_cgm == 'False' else 'cgm' if use_cgm == 'True' else 'precondcgm'
+
+    errtol_string = 'exact'
+    if error_tolerance is not None and error_tolerance != 0.0:
+        errtol_string = 'errtol' + error_tolerance
+
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
     if phi_updt == True:
-        eff_file = out_dir + '_pst_eff_a%d_b%.1f_phiauto_chr%d.txt' % (a, b, chrom)
+        filename = 'pst_eff_a%d_b%.1f_phiauto_chr%d.txt' % (a, b, chrom)
     else:
-        eff_file = out_dir + '_pst_eff_a%d_b%.1f_phi%1.0e_chr%d.txt' % (a, b, phi, chrom)
+        filename = 'pst_eff_a%d_b%.1f_phi%1.0e_chr%d.txt' % (a, b, phi, chrom)
+        
+    filename = '_'.join([timestamp, cgm_type, errtol_string, filename])
+    eff_file = os.path.join(out_dir, filename)
 
     with open(eff_file, 'w') as ff:
         for snp, bp, a1, a2, beta in zip(sst_dict['SNP'], sst_dict['BP'], sst_dict['A1'], sst_dict['A2'], beta_est):
             ff.write('%d\t%s\t%d\t%s\t%s\t%.6e\n' % (chrom, snp, bp, a1, a2, beta))
+    logging.info('Wrote SNP effect sizes to %s' % eff_file)
 
     # print estimated phi
     if phi_updt == True:
