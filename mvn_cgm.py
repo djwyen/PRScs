@@ -7,6 +7,7 @@ from scipy import linalg
 import numpy as np
 from numpy import random
 import math
+import logging
 
 # TODO could wrap these in a class so that we can precompute and retain the Cholesky factor of the LD portion.
 # We would have to change the signatures of the functions somewhat to take in the LD / Psi separately though instead of combined as an unscaled precision matrix
@@ -22,10 +23,12 @@ def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, max_iterations=None, err
     eta = Q_sample + ((N / sigma2)*beta_hat)
     if not preconditioned:
         theta, n_iterations = cg_solve(scaled_Q, eta, max_iterations=max_iterations, error=error)
+        # logging.info("Nonprecon MVN call on blocksize %d has condition number %f, iterations %d" % (len(unscaled_Q), condition_number(unscaled_Q), n_iterations))
         # where n_iterations is the number of iterations actually performed
         return theta, n_iterations
     preconditioner = linalg.inv(np.diag(np.diagonal(unscaled_Q).copy()))
     theta, n_iterations = preconditioned_cg_solve(scaled_Q, eta, preconditioner, max_iterations=max_iterations, error=error)
+    # logging.info("Precond MVN call on blocksize %d has condition number %f, iterations %d" % (len(unscaled_Q), condition_number(preconditioner @ unscaled_Q), n_iterations))
     return theta, n_iterations
 
 def cholesky_sample(mu, A):
@@ -132,3 +135,9 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
         # print('d is', d)
         n_iterations += 1
     return x, n_iterations
+
+def condition_number(A):
+    """Calculates the conjugate gradient method condition number of a real symmetric matrix A."""
+    eigvals = linalg.eigvalsh(A)
+    tmp_eigvals = np.sort(np.absolute(eigvals))
+    return tmp_eigvals[-1] / tmp_eigvals[0]
