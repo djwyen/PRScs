@@ -119,15 +119,19 @@ def main():
 
     # data is now in a very convenient form for plotting
     # colormap for being able to scale the lines sensibly
-    viridis = mpl.colormaps['viridis'].resampled(6)
-    viridis_r = mpl.colormaps['viridis_r'].resampled(6)
+    viridis = mpl.colormaps['viridis'].resampled(4)
+    viridis_r = mpl.colormaps['viridis_r'].resampled(4)
     error_to_fraction = lambda x: math.log10(1/x) / 10
 
     plt.plot(blocksizes, [vanilla_blocksize_to_avgtime[blocksize] for blocksize in blocksizes], '.-', label='Cholesky', color='red', alpha=.6)
     plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM', color=viridis(0), alpha=.6)
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-8], '.-', label='1e-8 preconditioned CGM', color=viridis(.8), alpha=.6)
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-7], '.-', label='1e-7 preconditioned CGM', color=viridis(.7), alpha=.6)
     plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=viridis(.5), alpha=.6)
     plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=viridis(.3), alpha=.6)
     plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=viridis(0), alpha=.6)
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-8], '.--', label='1e-8 nonpreconditioned CGM', color=viridis(.8), alpha=.6)
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-7], '.--', label='1e-7 nonpreconditioned CGM', color=viridis(.7), alpha=.6)
     plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=viridis(.5), alpha=.6)
     plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=viridis(.3), alpha=.6)
 
@@ -138,7 +142,7 @@ def main():
     plt.title('Average sampling time (seconds) by blocksize')
     plt.show()
 
-    for err in [1e-3, 1e-5, 1e-7]:
+    for err in [1e-3, 1e-5, 1e-7, 1e-8]:
         label = 'exact' if err == 0.0 else str(err) # well, it's not that sensible to think about this as exact obviously is a straight line?
         plt.plot(precond_avgiters.index, precond_avgiters[err], '.-',
                  label=label + ' precond',
