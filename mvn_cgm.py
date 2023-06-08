@@ -46,7 +46,6 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
         error = 0
     if x is None:
         x = np.zeros(n)
-    # print("A at x", (A @ x).shape)
     r = b - (A @ x)
     d = r
     delta_new = np.inner(r, r)
@@ -54,39 +53,21 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
     max_error = delta_new * error * error
     n_iterations = 0
     
-    # print('CGM initialization')
-    # print('max_iterations is', max_iterations)
-    # print('n is', n)
-    # print('x is', x.shape)
-    # print('r is', r.shape)
-    # print('d is', d.shape)
-    # print('delta is', delta_new)
     for i in range(max_iterations):
         if delta_new <= max_error:
             break
-        # print(f' === iteration {i} ===')
         q = A @ d
-        # print('q is', q)
         alpha = delta_new / np.inner(d, q)
-        # print('alpha is', alpha)
         x = x + (alpha * d)
-        # print('x is', x)
         if i % 50 == 0:
             r = b - (A @ x)
         else:
             r = r - (alpha * q)
-        # print('r is', r)
         delta_old = delta_new
         delta_new = np.inner(r, r)
-        # print('new delta is', delta_new)
         beta = delta_new / delta_old
-        # print('beta is', beta)
         d = r + (beta * d)
-        # print('d is', d)
         n_iterations += 1
-    # TODO see if we can explicitly calculate the condition number or use Gershgorin circle theorem to bound the eigenvalues, which could more rigorously argue that the blowup phenomenon really does have to do with Psi_inv
-    # when we refactor to take in LD/Psi separately, that would also let us explicitly look at Psi
-    # print('trace of A is', np.trace(A), 'and the  number of iterations is', n_iterations)
     return x, n_iterations
 
 def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
@@ -104,34 +85,21 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
     max_error = delta_new * error * error
     n_iterations = 0
     
-    # print('initialization')
-    # print('r is', r)
-    # print('r is', r)
-    # print('delta is', delta_new)
     for i in range(max_iterations):
         if delta_new <= max_error:
             break
-        # print(f' === iteration {i} ===')
         q = A @ d
-        # print('q is', q)
         alpha = delta_new / np.inner(d, q)
-        # print('alpha is', alpha)
         x = x + (alpha * d)
-        # print('x is', x)
         if i % 50 == 0:
             r = b - (A @ x)
         else:
             r = r - (alpha * q)
-        # print('r is', r)
         s = M_inv @ r
-        # print('s is', s)
         delta_old = delta_new
         delta_new = np.inner(r, s)
-        # print('new delta is', delta_new)
         beta = delta_new / delta_old
-        # print('beta is', beta)
         d = s + (beta * d)
-        # print('d is', d)
         n_iterations += 1
     return x, n_iterations
 
