@@ -35,8 +35,7 @@ def cholesky_sample(mu, A):
     # Cholesky sample from the MVN with mean mu and covariance matrix A
     C = linalg.cholesky(A, lower=True) # I prefer the lower triangular convention
     z = random.randn(len(A), 1)
-    w = linalg.solve_triangular(C, z, lower=True, trans='T')
-    return mu + w
+    return mu + (C @ z)
 
 def cg_solve(A, b, max_iterations, error=None, x=None):
     """Approximates a solution x to A@x = b. Algorithm adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain" """
