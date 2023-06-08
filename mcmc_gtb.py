@@ -17,6 +17,17 @@ import csv
 import os
 
 
+def sample_mvn(unscaled_Q, beta_hat, sigma, n, d, use_cgm, error_tolerance):
+    if use_cgm == 'False':
+        dinvt_chol = linalg.cholesky(unscaled_Q)
+        beta_tmp = linalg.solve_triangular(dinvt_chol, beta_hat, trans='T') + sp.sqrt(sigma/n)*random.randn(d,1)
+        new_beta = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
+        return new_beta, None
+    preconditioned = True if use_cgm == 'Precond' else False
+    beta_hat = beta_hat
+    sample, n_iterations = mvn_cgm.sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma, n, max_iterations=None, error=error_tolerance, preconditioned=preconditioned)
+    return sample.reshape(d, 1), n_iterations
+
 def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, mvn_output_file=None):
     # where `mvn_output_file` is a parameter I have added for saving MVN-performance-pertinent information
     logging.info('... MCMC ...')
@@ -78,16 +89,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0]) # the precision matrix (without scaling) of the MVN of interest, i.e. (D + Psi^-1)
 
                 start = time.time()
-                if use_cgm == 'False':
-                    dinvt_chol = linalg.cholesky(dinvt) # the cholesky factor of Q, i.e. C such that C.TC = Q. Note that scipy uses the convention of upper-triangular Cholesky factor.
-                    beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1) # solving the lower-triangular system C.Tx = ^beta, then adding some rescaled MVN
-                    beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N') # solving the upper-triangular system Cx = beta_tmp
-                    # I will spare you the arithmetic but if you write everything out in paper and write in the affine transformation steps, you find that indeed this double-Cholesky-triangle-solve method will yield `beta` distributed with the correct mean/covariance.
-                    n_iterations = None
-                else:
-                    beta_hat = beta_mrg[idx_blk]
-                    sample, n_iterations = mvn_cgm.sample_mvn_alg_3_4(dinvt, beta_hat, sigma, n, max_iterations=None, error=error_tolerance, preconditioned=preconditioned)
-                    beta[idx_blk] = sample.reshape(len(idx_blk), 1)
+                sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, error_tolerance)
+                beta[idx_blk] = sample
                 end = time.time()
                 # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
                 samples.append( (itr, kk, len(idx_blk), (end-start), n_iterations) )
