@@ -5,8 +5,11 @@ import csv
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+import math
 
-LOGFILE = 'june6.log'
+# TODO run exact CGM of both types to baseline
 CSV_DIR = 'mvn_csvs/'
 VANILLA_CSV = 'vanilla.csv'
 
@@ -115,28 +118,36 @@ def main():
     nonprecond_avgiters = sort_dataframe(nonprecond_avgiters)
 
     # data is now in a very convenient form for plotting
-    # TODO choose colors non arbitrarily to help visually group by alg type
-    plt.plot(blocksizes, [vanilla_blocksize_to_avgtime[blocksize] for blocksize in blocksizes], '.-', label='Cholesky')
-    plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM')
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.-', label='exact nonpreconditioned CGM')
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond')
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.-', label='1e-5 error nonprecond')
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond')
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.-', label='1e-3 error nonprecond')
+    # colormap for being able to scale the lines sensibly
+    viridis = mpl.colormaps['viridis'].resampled(6)
+    viridis_r = mpl.colormaps['viridis_r'].resampled(6)
+    error_to_fraction = lambda x: math.log10(1/x) / 10
+
+    plt.plot(blocksizes, [vanilla_blocksize_to_avgtime[blocksize] for blocksize in blocksizes], '.-', label='Cholesky', color='red', alpha=.6)
+    plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM', color=viridis(0), alpha=.6)
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=viridis(.5), alpha=.6)
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=viridis(.3), alpha=.6)
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=viridis(0), alpha=.6)
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=viridis(.5), alpha=.6)
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=viridis(.3), alpha=.6)
 
     # TODO break the x axis potentially?
     # plt.xticks(blocksizes)
     plt.gca().set_xticks(blocksizes, minor=True)
     plt.legend()
-    plt.title('Average sampling time by blocksize')
+    plt.title('Average sampling time (seconds) by blocksize')
     plt.show()
-
 
     for err in [1e-3, 1e-5, 1e-7]:
         label = 'exact' if err == 0.0 else str(err) # well, it's not that sensible to think about this as exact obviously is a straight line?
-        plt.plot(precond_avgiters.index, precond_avgiters[err], '.--', label = label + ' precond')
-        plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[err], '.--', label = label + ' nonprecond')
-    plt.plot(precond_avgiters.index, precond_avgiters[0.0], label='exact') # exact sampling is the max number of iterations regardless of whether we precondition
+        plt.plot(precond_avgiters.index, precond_avgiters[err], '.-',
+                 label=label + ' precond',
+                 color=viridis(error_to_fraction(err)))
+        plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[err], '.--',
+                 label=label + ' nonprecond',
+                 color=viridis(error_to_fraction(err)))
+    plt.plot(precond_avgiters.index, precond_avgiters[0.0],
+             label='exact') # exact sampling is the max number of iterations regardless of whether we precondition
     plt.gca().set_xticks(blocksizes, minor=True)
     plt.legend()
     plt.title('Average number of iterations by blocksize')
