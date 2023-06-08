@@ -1,0 +1,4 @@
+use_cgm,err_tol,n_trials
+False,None,25
+True,None,25
+Precond,0.000001,25
