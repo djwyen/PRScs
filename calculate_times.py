@@ -10,7 +10,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import math
 
 # TODO run exact CGM of both types to baseline
-CSV_DIR = 'mvn_csvs/'
+CSV_DIR = 'mvn_csvs/june7_data'
 VANILLA_CSV = 'vanilla.csv'
 
 def calculate_stats(filepath):
