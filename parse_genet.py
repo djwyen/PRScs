@@ -275,16 +275,14 @@ def genotype_to_LD_matrix(X):
     """Computes the LD matrix corresponding to normalized genotype matrix `X`, where each row is an individual."""
     return (X.T @ X) / X.shape[0]
 
-def LD_from_genofile(geno_file, kept_indices):
-    file = np.loadtxt(fname=geno_file)
-    # TODO np.savetxt the filtered lines
-    kept_genotype = file[kept_indices]
-    standardized_genotype = normalize_matrix(kept_genotype, axis=0)
-    ld_matrix = genotype_to_LD_matrix(standardized_genotype)
+def LD_from_genofile(geno_file):
+    genotypes = np.loadtxt(fname=geno_file)
+    standardized_genotypes = normalize_matrix(genotypes, axis=0)
+    ld_matrix = genotype_to_LD_matrix(standardized_genotypes)
 
     # we only have the one ld block, but wrap everything to look like we have multiple blocks
     ld_blk = {0: ld_matrix}
-    blksize = {0: [len(kept_indices)]}
+    blksize = {0: [ld_matrix.shape[0]]}
     return ld_blk, blksize
 
 
