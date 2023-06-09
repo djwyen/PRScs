@@ -282,7 +282,7 @@ def LD_from_genofile(geno_file):
 
     # we only have the one ld block, but wrap everything to look like we have multiple blocks
     ld_blk = {0: ld_matrix}
-    blksize = {0: [ld_matrix.shape[0]]}
+    blksize = {0: ld_matrix.shape[0]}
     return ld_blk, blksize
 
 
