@@ -155,7 +155,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     # save the samples to file
     if mvn_output_file is not None:
-        path = os.path.splitext(mvn_output_file)[0]
+        path = os.path.split(mvn_output_file)[0]
         if not os.path.exists(path):
             os.makedirs(path)
         with open(mvn_output_file, 'w+', newline='') as f:
