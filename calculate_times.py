@@ -119,21 +119,22 @@ def main():
 
     # data is now in a very convenient form for plotting
     # colormap for being able to scale the lines sensibly
-    viridis = mpl.colormaps['viridis'].resampled(4)
-    viridis_r = mpl.colormaps['viridis_r'].resampled(4)
+    palette = mpl.colormaps['tab10'].resampled(5)
+    # viridis_r = mpl.colormaps['viridis_r'].resampled(5)
     error_to_fraction = lambda x: math.log10(1/x) / 10
 
-    plt.plot(blocksizes, [vanilla_blocksize_to_avgtime[blocksize] for blocksize in blocksizes], '.-', label='Cholesky', color='red')
-    plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM', color=viridis(0))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-8], '.-', label='1e-8 preconditioned CGM', color=viridis(.8))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-7], '.-', label='1e-7 preconditioned CGM', color=viridis(.7))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=viridis(.5))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=viridis(.3))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=viridis(0))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-8], '.--', label='1e-8 nonpreconditioned CGM', color=viridis(.8))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-7], '.--', label='1e-7 nonpreconditioned CGM', color=viridis(.7))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=viridis(.5))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=viridis(.3))
+    # sorted since the Cholesky points are not necessarily in order otherwise
+    plt.plot(sorted(blocksizes), [vanilla_blocksize_to_avgtime[blocksize] for blocksize in sorted(blocksizes)], '.-', label='Cholesky', color='red')
+    # plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM', color=viridis(0))
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-8], '.-', label='1e-8 preconditioned CGM', color=palette(.8))
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-7], '.-', label='1e-7 preconditioned CGM', color=palette(.7))
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=palette(.5))
+    plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=palette(.3))
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=palette(0))
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-8], '.--', label='1e-8 nonpreconditioned CGM', color=palette(.8))
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-7], '.--', label='1e-7 nonpreconditioned CGM', color=palette(.7))
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=palette(.5))
+    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=palette(.3))
 
     # TODO break the x axis potentially?
     # plt.xticks(blocksizes)
@@ -146,10 +147,10 @@ def main():
         label = 'exact' if err == 0.0 else str(err) # well, it's not that sensible to think about this as exact obviously is a straight line?
         plt.plot(precond_avgiters.index, precond_avgiters[err], '.-',
                  label=label + ' precond',
-                 color=viridis(error_to_fraction(err)))
+                 color=palette(error_to_fraction(err)))
         plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[err], '.--',
                  label=label + ' nonprecond',
-                 color=viridis(error_to_fraction(err)))
+                 color=palette(error_to_fraction(err)))
     plt.plot(precond_avgiters.index, precond_avgiters[0.0],
              label='exact') # exact sampling is the max number of iterations regardless of whether we precondition
     plt.gca().set_xticks(blocksizes, minor=True)
