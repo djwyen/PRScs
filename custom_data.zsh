@@ -1,0 +1,1 @@
+python PRScs.py --ref_dir=data/prscs_test_data --bim_prefix=data/prscs_test_data/geno_first_1000_snps --sst_file=prscs_test_test_data/sumstats.txt --n_gwas=2504 --chrom=1 --phi=1e-2 --out_dir=output/prscs_test_data --use_cgm=False --log_file=logs/june9prscs_test_data --mvn_dir=mvn_csvs/prscs_test_data --trials_file=custom_data_trials_file.csv
