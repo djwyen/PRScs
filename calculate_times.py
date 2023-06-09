@@ -3,6 +3,7 @@ Quick script to calculate the times/avg iterations recorded for each sample from
 """
 import csv
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -10,7 +11,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import math
 
 # TODO run exact CGM of both types to baseline
-CSV_DIR = 'mvn_csvs/june7_data'
+CSV_DIR = 'mvn_csvs/prscs_test_data'
 VANILLA_CSV = 'vanilla.csv'
 
 def calculate_stats(filepath):
@@ -117,45 +118,90 @@ def main():
     nonprecond_avgtime = sort_dataframe(nonprecond_avgtime)
     nonprecond_avgiters = sort_dataframe(nonprecond_avgiters)
 
-    # data is now in a very convenient form for plotting
-    # colormap for being able to scale the lines sensibly
-    palette = mpl.colormaps['tab10'].resampled(5)
-    # viridis_r = mpl.colormaps['viridis_r'].resampled(5)
-    error_to_fraction = lambda x: math.log10(1/x) / 10
+    # # data is now in a very convenient form for plotting
+    # # colormap for being able to scale the lines sensibly
+    # palette = mpl.colormaps['tab10'].resampled(5)
+    # # viridis_r = mpl.colormaps['viridis_r'].resampled(5)
+    # error_to_fraction = lambda x: math.log10(1/x) / 10
 
-    # sorted since the Cholesky points are not necessarily in order otherwise
-    plt.plot(sorted(blocksizes), [vanilla_blocksize_to_avgtime[blocksize] for blocksize in sorted(blocksizes)], '.-', label='Cholesky', color='red')
-    # plt.plot(precond_avgtime.index, precond_avgtime[0.0], '.-', label='exact preconditioned CGM', color=viridis(0))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-8], '.-', label='1e-8 preconditioned CGM', color=palette(.8))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-7], '.-', label='1e-7 preconditioned CGM', color=palette(.7))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=palette(.5))
-    plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=palette(.3))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=palette(0))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-8], '.--', label='1e-8 nonpreconditioned CGM', color=palette(.8))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-7], '.--', label='1e-7 nonpreconditioned CGM', color=palette(.7))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=palette(.5))
-    plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=palette(.3))
+    # # sorted since the Cholesky points are not necessarily in order otherwise
+    # plt.plot(sorted(blocksizes), [vanilla_blocksize_to_avgtime[blocksize] for blocksize in sorted(blocksizes)], '.-', label='Cholesky', color='red')
+    # plt.plot(precond_avgtime.index, precond_avgtime[1e-8], '.-', label='1e-8 preconditioned CGM', color=palette(.8))
+    # plt.plot(precond_avgtime.index, precond_avgtime[1e-7], '.-', label='1e-7 preconditioned CGM', color=palette(.7))
+    # plt.plot(precond_avgtime.index, precond_avgtime[1e-5], '.-', label='1e-5 error precond', color=palette(.5))
+    # plt.plot(precond_avgtime.index, precond_avgtime[1e-3], '.-', label='1e-3 error precond', color=palette(.3))
+    # plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[0.0], '.--', label='exact nonpreconditioned CGM', color=palette(0))
+    # plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-8], '.--', label='1e-8 nonpreconditioned CGM', color=palette(.8))
+    # plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-7], '.--', label='1e-7 nonpreconditioned CGM', color=palette(.7))
+    # plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-5], '.--', label='1e-5 error nonprecond', color=palette(.5))
+    # plt.plot(nonprecond_avgtime.index, nonprecond_avgtime[1e-3], '.--', label='1e-3 error nonprecond', color=palette(.3))
 
-    # TODO break the x axis potentially?
-    # plt.xticks(blocksizes)
-    plt.gca().set_xticks(blocksizes, minor=True)
-    plt.legend()
-    plt.title('Average sampling time (seconds) by blocksize')
+    # # TODO break the x axis potentially?
+    # # plt.xticks(blocksizes)
+    # plt.gca().set_xticks(blocksizes, minor=True)
+    # plt.legend()
+    # plt.title('Average sampling time (seconds) by blocksize')
+    # plt.show()
+
+    # for err in [1e-3, 1e-5, 1e-7, 1e-8]:
+    #     label = 'exact' if err == 0.0 else str(err) # well, it's not that sensible to think about this as exact obviously is a straight line?
+    #     plt.plot(precond_avgiters.index, precond_avgiters[err], '.-',
+    #              label=label + ' precond',
+    #              color=palette(error_to_fraction(err)))
+    #     plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[err], '.--',
+    #              label=label + ' nonprecond',
+    #              color=palette(error_to_fraction(err)))
+    # plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[0.0],
+    #          label='exact') # exact sampling is the max number of iterations regardless of whether we precondition
+    # plt.gca().set_xticks(blocksizes, minor=True)
+    # plt.legend()
+    # plt.title('Average number of iterations by blocksize')
+    # plt.show()
+
+
+    errs = [1e-3, 1e-5, 1e-7, 1e-8]
+    N = len(errs)
+    PRSCS_TEST_BLOCKSIZE = 597
+
+    nonprecond_vals = [nonprecond_avgtime[err][PRSCS_TEST_BLOCKSIZE] for err in errs]
+    precond_vals = [precond_avgtime[err][PRSCS_TEST_BLOCKSIZE] for err in errs]
+
+    ind = np.arange(N + 1)
+    plt.figure(figsize=(10, 5))
+    width = 0.2
+
+    plt.bar(ind, [*nonprecond_vals, nonprecond_avgtime[0.0]], width, label='CGM without preconditioning')
+    plt.bar(ind[:-1] + width, precond_vals, width, label='CGM w/ diagonal preconditioning')
+    plt.bar([ind[-1] + width], vanilla_blocksize_to_avgtime[PRSCS_TEST_BLOCKSIZE], width, label='Cholesky')
+
+    plt.xlabel('error tolerance')
+    plt.ylabel('average time per sample (seconds)')
+    plt.title(f'Average sampling time by error tolerance; data from {CSV_DIR}')
+
+    plt.xticks(ind + width / 2, errs + ['Exact'])
+
+    plt.legend(loc='best')
     plt.show()
 
-    for err in [1e-3, 1e-5, 1e-7, 1e-8]:
-        label = 'exact' if err == 0.0 else str(err) # well, it's not that sensible to think about this as exact obviously is a straight line?
-        plt.plot(precond_avgiters.index, precond_avgiters[err], '.-',
-                 label=label + ' precond',
-                 color=palette(error_to_fraction(err)))
-        plt.plot(nonprecond_avgiters.index, nonprecond_avgiters[err], '.--',
-                 label=label + ' nonprecond',
-                 color=palette(error_to_fraction(err)))
-    plt.plot(precond_avgiters.index, precond_avgiters[0.0],
-             label='exact') # exact sampling is the max number of iterations regardless of whether we precondition
-    plt.gca().set_xticks(blocksizes, minor=True)
-    plt.legend()
-    plt.title('Average number of iterations by blocksize')
+
+    # plot iterations
+    nonprecond_avgiter_vals = [nonprecond_avgiters[err][PRSCS_TEST_BLOCKSIZE] for err in errs]
+    precond_avgiter_vals = [precond_avgiters[err][PRSCS_TEST_BLOCKSIZE] for err in errs]
+
+    ind = np.arange(N)
+    plt.figure(figsize=(10, 5))
+    width = 0.2
+
+    plt.bar(ind, nonprecond_avgiter_vals, width, label='CGM without preconditioning')
+    plt.bar(ind + width, precond_avgiter_vals, width, label='CGM w/ diagonal preconditioning')
+
+    plt.xlabel('error tolerance')
+    plt.ylabel('average number of iterations per sample')
+    plt.title(f'Average number of CGM iterations by error tolerance; data from {CSV_DIR}')
+
+    plt.xticks(ind + width / 2, errs)
+
+    plt.legend(loc='best')
     plt.show()
 
 
