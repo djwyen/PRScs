@@ -1,5 +1,6 @@
 """
 Quick script to calculate the times/avg iterations recorded for each sample from PRScs, put them into a dataframe to be workable, and plot them.
+TODO refactor so that we can automatically switch to bar plots when we detect just a single blocksize
 """
 import csv
 import os
@@ -10,7 +11,6 @@ import matplotlib as mpl
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import math
 
-# TODO run exact CGM of both types to baseline
 CSV_DIR = 'mvn_csvs/prscs_test_data'
 VANILLA_CSV = 'vanilla.csv'
 
