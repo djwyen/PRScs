@@ -26,7 +26,7 @@ def sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma2, N, max_iterations=None, err
         # logging.info("Nonprecon MVN call on blocksize %d has condition number %f, iterations %d" % (len(unscaled_Q), condition_number(unscaled_Q), n_iterations))
         # where n_iterations is the number of iterations actually performed
         return theta, n_iterations
-    preconditioner = linalg.inv(np.diag(np.diagonal(unscaled_Q).copy()))
+    preconditioner = 1 / np.diag(unscaled_Q)
     theta, n_iterations = preconditioned_cg_solve(scaled_Q, eta, preconditioner, max_iterations=max_iterations, error=error)
     # logging.info("Precond MVN call on blocksize %d has condition number %f, iterations %d" % (len(unscaled_Q), condition_number(preconditioner @ unscaled_Q), n_iterations))
     return theta, n_iterations
@@ -71,7 +71,11 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
     return x, n_iterations
 
 def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
-    """Approximates a solution x to M^-1Ax = M^-1bx with starting value `x` and `max_iterations` of the Conjugate Gradient method. Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain"""
+    """
+    Approximates a solution x to M^-1Ax = M^-1bx with starting value `x` and `max_iterations` of the Conjugate Gradient method.
+    Assumes a diagonal preconditioner `M_inv`.
+    Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain
+    """
     n = A.shape[0]
     if max_iterations > n or error is None:
         max_iterations = n
@@ -79,7 +83,7 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
     if x is None:
         x = np.zeros(n)
     r = b - (A @ x)
-    d = M_inv @ r
+    d = M_inv * r # this line is specific to using a diagonal preconditioner; otherwise you'd need to do the more generic (M_inv @ r)
     delta_new = np.inner(r, d)
 
     max_error = delta_new * error * error
@@ -95,7 +99,7 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
             r = b - (A @ x)
         else:
             r = r - (alpha * q)
-        s = M_inv @ r
+        s = M_inv * r # ibid. to the initialization line with d
         delta_old = delta_new
         delta_new = np.inner(r, s)
         beta = delta_new / delta_old
