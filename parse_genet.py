@@ -12,6 +12,8 @@ from scipy.stats import norm
 from scipy import linalg
 import h5py
 import logging
+import numpy as np
+import csv
 
 
 def parse_ref(ref_file, chrom):
@@ -184,3 +186,117 @@ def parse_ldblk(ldblk_dir, sst_dict, chrom):
     return ld_blk, blk_size
 
 
+def compute_sumstats_file(gwas_file, output_file):
+    """Computes and writes the sumstats output file used by PRScs in testing."""
+    with open(gwas_file) as f1, open(output_file, 'w+') as f2:
+        gwas_reader = csv.reader(f1, delimiter='\t')
+        sumstats_writer = csv.writer(f2, delimiter='\t')
+
+        header = next(gwas_reader)
+        attribute_to_idx = {header[i]: i for i in range(len(header))}
+        sumstats_writer.writerow(['SNP', 'A1', 'A2', 'BETA', 'P'])
+        for line in gwas_reader:
+            snp_id = line[attribute_to_idx['ID']]
+            ref, alt = line[attribute_to_idx['REF']], line[attribute_to_idx['ALT']]
+            beta = line[attribute_to_idx['BETA']]
+            p_value = line[attribute_to_idx['P']]
+            if len(ref) == 1 and len(alt) == 1: # only keep those that are single-nucleotide substitutions
+                # conventionally A1 is REF and A2 is ALT
+                sumstats_writer.writerow([snp_id, ref, alt, beta, p_value])
+
+def filter_geno_file(geno_file, gwas_file, bim_file, output_file):
+    """Filters and saves a new geno file containing only those first 1000 SNPs (from the bim file) that survived the GWAS filters."""
+    # read the BIM to get the SNP IDs for the columns to save, as well as the indices from the first 1000 lines
+    snp_id_to_index = {}
+    with open(bim_file) as f:
+        for idx, line in enumerate(f):
+            l = (line.strip()).split()
+            snp_id = l[1]
+            snp_id_to_index[snp_id] = idx
+
+    saved_idxs = []
+    with open(gwas_file) as f:
+        gwas_reader = csv.reader(f, delimiter='\t')
+        header = next(gwas_reader)
+        attribute_to_idx = {header[i]: i for i in range(len(header))}
+        for line in gwas_reader:
+            snp_id = line[attribute_to_idx['ID']]
+            if snp_id in snp_id_to_index:
+                saved_idxs.append(snp_id_to_index[snp_id])
+
+    genotypes = np.loadtxt(fname=geno_file)
+    filtered_genotypes = genotypes[:, saved_idxs]
+    assert genotypes.shape[0] == filtered_genotypes.shape[0] # sanity check
+    assert len(saved_idxs) == filtered_genotypes.shape[1]
+    np.savetxt(output_file, filtered_genotypes, fmt='%-1d', delimiter='       ')
+
+def compute_snpinfo_file(gwas_file, geno_file, bim_file, output_file):
+    snp_id_to_index = {}
+    with open(bim_file) as f:
+        for idx, line in enumerate(f):
+            l = (line.strip()).split()
+            snp_id = l[1]
+            snp_id_to_index[snp_id] = idx
+
+    genotypes = np.loadtxt(fname=geno_file)
+    
+    saved_idxs = []
+    with open(gwas_file) as f1, open(output_file, 'w+') as f2:
+        gwas_reader = csv.reader(f1, delimiter='\t')
+        snpinfo_writer = csv.writer(f2, delimiter='\t')
+
+        header = next(gwas_reader)
+        attribute_to_idx = {header[i]: i for i in range(len(header))}
+        snpinfo_writer.writerow(['CHR', 'SNP', 'BP', 'A1', 'A2', 'MAF'])
+
+        for line in gwas_reader:
+            snp_id = line[attribute_to_idx['ID']]
+            if snp_id in snp_id_to_index:
+                idx = snp_id_to_index[snp_id]
+                saved_idxs.append(idx)
+
+                ref, alt = line[attribute_to_idx['REF']], line[attribute_to_idx['ALT']]
+                if len(ref) == 1 and len(alt) == 1: # only keep those that are single-nucleotide substitutions
+                    chromosome = line[attribute_to_idx['#CHROM']]
+                    position = line[attribute_to_idx['POS']]
+                    # calculate the minor allele frequency (MAF) for this SNP
+                    maf = np.sum(genotypes[:, idx]) / (2 * genotypes.shape[0]) # the factor of 2 owes to the fact that there are 2 alleles per gene
+                    # conventionally A1 is REF and A2 is ALT
+                    snpinfo_writer.writerow([chromosome, snp_id, position, ref, alt, maf])
+
+def normalize_matrix(X, axis=0):
+    """Normalize a matrix `X` along a given axis."""
+    # need to account for columns that are constant and therefore have stdev 0 to prevent divide by zero. Replace with 1's so that the resulting normalized matrix has constant 0's across that feature.
+    stdX = np.std(X, axis=axis)
+    stdX = np.add(stdX, np.ones(stdX.shape), out=stdX, where=(stdX == 0))
+    return (X - np.mean(X, axis=axis)) / stdX
+
+def genotype_to_LD_matrix(X):
+    """Computes the LD matrix corresponding to normalized genotype matrix `X`, where each row is an individual."""
+    return (X.T @ X) / X.shape[0]
+
+def LD_from_genofile(geno_file, kept_indices):
+    file = np.loadtxt(fname=geno_file)
+    # TODO np.savetxt the filtered lines
+    kept_genotype = file[kept_indices]
+    standardized_genotype = normalize_matrix(kept_genotype, axis=0)
+    ld_matrix = genotype_to_LD_matrix(standardized_genotype)
+
+    # we only have the one ld block, but wrap everything to look like we have multiple blocks
+    ld_blk = {0: ld_matrix}
+    blksize = {0: [len(kept_indices)]}
+    return ld_blk, blksize
+
+
+# if __name__ == '__main__':
+    # compute_sumstats_file('./data/prscs_test_data/results.PHENO1.glm.linear', './prscs_test_test_data/sumstats.txt')
+    # filter_geno_file(geno_file='./data/geno.txt',
+    #                  gwas_file='./data/prscs_test_data/results.PHENO1.glm.linear',
+    #                  bim_file='./data/prscs_test_data/geno_first_1000_snps.bim',
+    #                  output_file='./data/prscs_test_data/first_1000_snps_geno.txt')
+    # compute_snpinfo_file(
+    #     gwas_file='./data/prscs_test_data/results.PHENO1.glm.linear',
+    #     geno_file='./data/geno.txt',
+    #     bim_file='./data/prscs_test_data/geno_first_1000_snps.bim',
+    #     output_file='./data/prscs_test_data/snpinfo_prscs_test_first_1000_snps'
+    # )
