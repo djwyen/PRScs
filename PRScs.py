@@ -16,6 +16,10 @@ python PRScs.py --ref_dir=PATH_TO_REFERENCE --bim_prefix=VALIDATION_BIM_PREFIX -
                       that contains information on the LD reference panel (the snpinfo file and hdf5 files).
                       If the 1000 Genomes reference panel is used, folder name would be ldblk_1kg_afr, ldblk_1kg_amr, ldblk_1kg_eas, ldblk_1kg_eur or ldblk_1kg_sas;
                       if the UK Biobank reference panel is used, folder name would be ldblk_ukbb_afr, ldblk_ukbb_amr, ldblk_ukbb_eas, ldblk_ukbb_eur or ldblk_ukbb_sas.
+                      *If our custom test dataset is used, folder name would be `prscs_test_data`, and it must contain:
+                        1. The filtered geno.txt file, set to only keep those SNPs which remained into the GWAS
+                        2. The snpinfo file
+                       And functions for computing these from our custom test dataset have been added to parse_genet.py
 
  - VALIDATION_BIM_PREFIX: Full path and the prefix of the bim file for the target (validation/testing) dataset.
                           This file is used to provide a list of SNPs that are available in the target dataset.
@@ -172,12 +176,17 @@ def prscs_wrapper(param_dict):
             ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_1kg_hm3', int(chrom))
         elif 'ukbb' in os.path.basename(param_dict['ref_dir']):
             ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_ukbb_hm3', int(chrom))
+        elif 'prscs_test_data' in os.path.basename(param_dict['ref_dir']):
+            ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_prscs_test_first_1000_snps', int(chrom))
 
         vld_dict = parse_genet.parse_bim(param_dict['bim_prefix'], int(chrom))
 
         sst_dict = parse_genet.parse_sumstats(ref_dict, vld_dict, param_dict['sst_file'], param_dict['n_gwas'])
 
-        ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom))
+        if '1kg' in os.path.basename(param_dict['ref_dir']) or 'ukbb' in os.path.basename(param_dict['ref_dir']):
+            ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom))
+        elif 'prscs_test_data' in os.path.basename(param_dict['ref_dir']):
+             ld_blk, blk_size = parse_genet.LD_from_genofile(param_dict['ref_dir'] + '/first_1000_snps_geno.txt')
 
         mvn_output_file = None
         if param_dict['mvn_dir'] is not None:
