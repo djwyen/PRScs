@@ -118,6 +118,8 @@ def main():
     nonprecond_avgtime = sort_dataframe(nonprecond_avgtime)
     nonprecond_avgiters = sort_dataframe(nonprecond_avgiters)
 
+
+    # BELOW: for plotting multiple block sizes (as a graph)
     # # data is now in a very convenient form for plotting
     # # colormap for being able to scale the lines sensibly
     # palette = mpl.colormaps['tab10'].resampled(5)
@@ -157,8 +159,10 @@ def main():
     # plt.legend()
     # plt.title('Average number of iterations by blocksize')
     # plt.show()
+    
 
 
+    # BELOW: for plotting a single blocksize (as a bar chart)
     errs = [1e-3, 1e-5, 1e-7, 1e-8]
     N = len(errs)
     PRSCS_TEST_BLOCKSIZE = 597
