@@ -90,8 +90,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 start = time.time()
                 sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, error_tolerance)
-                beta[idx_blk] = sample
                 end = time.time()
+                beta[idx_blk] = sample
                 # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
                 samples.append( (itr, kk, len(idx_blk), (end-start), n_iterations) )
                 # logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
