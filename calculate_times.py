@@ -13,6 +13,7 @@ import math
 
 CSV_DIR = 'mvn_csvs/prscs_test_data'
 VANILLA_CSV = 'vanilla.csv'
+BURN_IN = 500 # discards the first BURN_IN many samples in computing the time
 
 def calculate_stats(filepath):
     # maps a block number to its block size
@@ -32,6 +33,9 @@ def calculate_stats(filepath):
             block_size = int(block_size)
             sampling_time = float(sampling_time)
             n_iterations = int(n_iterations) if n_iterations != '' else None
+
+            if mcmc_iteration <= BURN_IN:
+                continue
 
             if block_number not in blkno_to_blocksize:
                 # we assume each will be updated in parallel
