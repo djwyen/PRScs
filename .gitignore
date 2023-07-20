@@ -109,3 +109,5 @@ data/.DS_Store
 
 */*/*.csv
 output/
+
+sampledata/
