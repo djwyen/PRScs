@@ -9,6 +9,9 @@ Markov Chain Monte Carlo (MCMC) sampler for polygenic prediction with continuous
 import scipy as sp
 from scipy import linalg 
 from numpy import random
+import math
+import numpy as np
+import matplotlib.pyplot as plt
 import gigrnd
 import mvn_cgm
 import logging
@@ -17,18 +20,17 @@ import csv
 import os
 
 
-def sample_mvn(unscaled_Q, beta_hat, sigma, n, d, use_cgm, error_tolerance):
+def sample_mvn(unscaled_Q, beta_hat, sigma, n, d, use_cgm, max_iterations, error_tolerance):
     if use_cgm == 'False':
         dinvt_chol = linalg.cholesky(unscaled_Q)
         beta_tmp = linalg.solve_triangular(dinvt_chol, beta_hat, trans='T') + sp.sqrt(sigma/n)*random.randn(d,1)
         new_beta = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
         return new_beta, None
     preconditioned = True if use_cgm == 'Precond' else False
-    beta_hat = beta_hat
-    sample, n_iterations = mvn_cgm.sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma, n, max_iterations=None, error=error_tolerance, preconditioned=preconditioned)
+    sample, n_iterations = mvn_cgm.sample_mvn_alg_3_4(unscaled_Q, beta_hat, sigma, n, max_iterations=max_iterations, error=error_tolerance, preconditioned=preconditioned)
     return sample.reshape(d, 1), n_iterations
 
-def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, mvn_output_file=None):
+def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, seed, use_cgm, error_tolerance, max_cgm_iters, mvn_output_file=None):
     # where `mvn_output_file` is a parameter I have added for saving MVN-performance-pertinent information
     logging.info('... MCMC ...')
     if use_cgm == 'False':
@@ -42,8 +44,12 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         if error_tolerance is not None:
             logging.info('Error tolerance is %.12f' % error_tolerance)
         else:
-            logging.info('No error tolerance; exact solution desired.')
-    preconditioned = True if use_cgm == 'Precond' else False
+            logging.info('No error tolerance set.')
+        
+        if max_cgm_iters is not None:
+            logging.info('Maximum number of CGM iterations allowed is %d' % max_cgm_iters)
+        else:
+            logging.info('No max number of CGM iterations set; allowed to run to completion')
 
     # for use with `mvn_output_file`
     # each entry is of the form (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
@@ -74,6 +80,10 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
     sigma_est = 0.0
     phi_est = 0.0
 
+    # n_times_non_PSD = 0
+    # blk_to_unconditioned_cond_numbers = {} # using the spectral norm
+    # blk_to_preconditioned_cond_numbers = {}
+
     # MCMC
     for itr in range(1,n_iter+1):
         if itr % 100 == 0:
@@ -88,12 +98,60 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0]) # the precision matrix (without scaling) of the MVN of interest, i.e. (D + Psi^-1)
 
+                # === ALL DEBUG BELOW ===
+                # logging.info('LD uncond spec cond number is ' + str(np.linalg.cond(ld_blk[kk], p=2)))
+                # precond_ldblk = np.linalg.inv(np.diag(np.diag(ld_blk[kk]))) @ ld_blk[kk]
+                # logging.info('LD cond spec cond number is ' + str(np.linalg.cond(precond_ldblk, p=2)))
+                # sample = random.multivariate_normal(mean=np.zeros(dinvt.shape[0]), cov=dinvt)[:10]
+                # logging.info('printing min and max of sample normal from the prec matrix')
+                # logging.info(str(np.min(sample)) + ', ' + str(np.max(sample)))
+
+
+                # sigma2 = np.squeeze(sigma) # sigma2 sometimes comes in a 2darray
+                # beta_hat = np.squeeze(beta_mrg[idx_blk])
+                # scaled_Q = (n / sigma2)*dinvt
+                # Q_sample = math.sqrt(n / sigma2)*mvn_cgm.cholesky_sample(0, dinvt)
+                # Q_sample = np.squeeze(Q_sample)
+                # eta = Q_sample + ((n / sigma2)*beta_hat)
+
+                # if kk == 2: # which we know to be the largest, size 511
+                #     if itr == 1:
+                #         for folder in ['LD', 'psi_inv', 'sigma2', 'eta', 'beta_hat']:
+                #             path = os.path.join('sampledata/blk2/', folder)
+                #             if not os.path.exists(path):
+                #                 os.makedirs(path)
+                #         # this is identical every time
+                #         np.savetxt(f'sampledata/blk2/beta_hat/{itr}.csv', beta_hat.reshape(1, -1), delimiter=',')
+
+                #     np.savetxt(f'sampledata/blk2/LD/{itr}.csv', ld_blk[kk], delimiter=',')
+                #     np.savetxt(f'sampledata/blk2/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
+                #     np.savetxt(f'sampledata/blk2/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
+                #     np.savetxt(f'sampledata/blk2/eta/{itr}.csv', eta.reshape(1, -1), delimiter=',')
+
+                # try:
+                #     np.linalg.cholesky(dinvt)
+                # except:
+                #     n_times_non_PSD += 1
+
+                # uncond_cond_number = np.linalg.cond(dinvt, p=2)
+                # precond_dinvt = np.linalg.inv(np.diag(np.diag(dinvt))) @ dinvt
+                # precond_cond_number = np.linalg.cond(precond_dinvt, p=2)
+                
+                # if kk not in blk_to_unconditioned_cond_numbers:
+                #     blk_to_unconditioned_cond_numbers[kk] = []
+                #     blk_to_preconditioned_cond_numbers[kk] = []
+                # blk_to_unconditioned_cond_numbers[kk].append(uncond_cond_number)
+                # blk_to_preconditioned_cond_numbers[kk].append(precond_cond_number)
+                # === ALL DEBUG ABOVE ===
+
                 start = time.time()
-                sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, error_tolerance)
+                beta_sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, max_cgm_iters, error_tolerance)
                 end = time.time()
-                beta[idx_blk] = sample
+                beta[idx_blk] = beta_sample
+
                 # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
-                samples.append( (itr, kk, len(idx_blk), (end-start), n_iterations) )
+                if mvn_output_file is not None:
+                    samples.append( (itr, kk, len(idx_blk), (end-start), n_iterations) )
                 # logging.info('MVN sampling on a block of size %(blocksize)d took %(time_elapsed)f seconds' % {"blocksize": len(idx_blk),
                 #                                                                                               "time_elapsed": (end-start)})
 
@@ -164,6 +222,26 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             writer.writerow(['mcmc_iteration', 'block_number', 'block_size', 'sampling_time', 'n_iterations'])
             writer.writerows(samples)
 
+    # logging.info('Number of times the prec matrix was not PSD: ' + str(n_times_non_PSD))
     logging.info('... Done ...')
 
+    # Plotting evolution of condition number by iteration:
+    # for kk in range(n_blk):
+    #     if kk in blk_to_preconditioned_cond_numbers:
+    #         plt.plot(blk_to_preconditioned_cond_numbers[kk], label=f'block {str(kk)}')
+    # plt.xlabel("Iteration number")
+    # plt.ylabel("Spectral condition number")
+    # plt.legend()
+    # plt.title("Preconditioned condition numbers by iteration")
+    # plt.show()
+
+    # for kk in range(n_blk):
+    #     if kk in blk_to_unconditioned_cond_numbers:
+    #         plt.plot(blk_to_unconditioned_cond_numbers[kk], label=f'block {str(kk)}')
+    # plt.yscale('log')
+    # plt.xlabel("Iteration number")
+    # plt.ylabel("Spectral condition number")
+    # plt.legend()
+    # plt.title("Unconditioned condition numbers by iteration")
+    # plt.show()
 

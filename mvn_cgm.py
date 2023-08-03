@@ -41,8 +41,9 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
     """Approximates a solution x to A@x = b. Algorithm adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain" """
     # the number of iterations one can perform tops off at the matrix dimension, which results in the exact answer. Alg is not well defined if we go over
     n = A.shape[0]
-    if max_iterations > n or error is None:
+    if max_iterations > n:
         max_iterations = n
+    if error is None:
         error = 0
     if x is None:
         x = np.zeros(n)
@@ -59,7 +60,7 @@ def cg_solve(A, b, max_iterations, error=None, x=None):
         q = A @ d
         alpha = delta_new / np.inner(d, q)
         x = x + (alpha * d)
-        if i % 50 == 0:
+        if i % 5 == 0:
             r = b - (A @ x)
         else:
             r = r - (alpha * q)
@@ -77,8 +78,9 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
     Adapted from algorithm B2 in J. Shewchuk's "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain
     """
     n = A.shape[0]
-    if max_iterations > n or error is None:
+    if max_iterations > n :
         max_iterations = n
+    if error is None:
         error = 0
     if x is None:
         x = np.zeros(n)
@@ -95,7 +97,7 @@ def preconditioned_cg_solve(A, b, M_inv, max_iterations, error=None, x=None):
         q = A @ d
         alpha = delta_new / np.inner(d, q)
         x = x + (alpha * d)
-        if i % 50 == 0:
+        if i % 5 == 0:
             r = b - (A @ x)
         else:
             r = r - (alpha * q)
