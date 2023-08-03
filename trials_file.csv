@@ -1,4 +1,4 @@
-use_cgm,err_tol,n_trials
-False,None,25
-True,None,25
-Precond,0.000001,25
+use_cgm,err_tol,max_cgm_iters,n_trials
+False,None,None,25
+True,None,None,25
+Precond,0.000001,None,25

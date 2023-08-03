@@ -80,6 +80,8 @@ python PRScs.py --ref_dir=PATH_TO_REFERENCE --bim_prefix=VALIDATION_BIM_PREFIX -
 
  - ERR_TOL (optional): If using CGM, the error tolerance we will allow for premature abortion of the CGM method. (If not CGM, has no effect.)
 
+ - MAX_CGM_ITERS (optional): If using CGM, the maximum number of CGM iterations we will allow.
+
  - TRIALS_FILE (optional): The path to a file containing list of configurations under which separate PRScs executions will be run under the same settings (i.e. files to analyze, mcmc iterations, etc.).
                            This is to allow for comparing either multiple runs of the same settings; or comparing between different MVN samplers at different error rates under the same settings.
 
@@ -100,12 +102,12 @@ import gigrnd
 def parse_param():
     long_opts_list = ['ref_dir=', 'bim_prefix=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
                       'n_iter=', 'n_burnin=', 'thin=', 'out_dir=', 'chrom=', 'beta_std=', 'seed=',
-                      'log_file=', 'mvn_dir=', 'use_cgm=', 'err_tol=', 'trials_file=',
+                      'log_file=', 'mvn_dir=', 'use_cgm=', 'err_tol=', 'max_cgm_iters=', 'trials_file=',
                       'help']
 
     param_dict = {'ref_dir': None, 'bim_prefix': None, 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
                   'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23), 'beta_std': 'False', 'seed': None,
-                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': None, 'trials_file': None}
+                  'log_file': 'default_log', 'mvn_dir': None, 'use_cgm': 'False', 'err_tol': None, 'max_cgm_iters': None, 'trials_file': None}
 
     print('\n')
 
@@ -139,6 +141,7 @@ def parse_param():
             elif opt == "--mvn_dir": param_dict['mvn_dir'] = arg
             elif opt == "--use_cgm": param_dict['use_cgm'] = arg
             elif opt == "--err_tol": param_dict['err_tol'] = float(arg)
+            elif opt == "--max_iters": param_dict['max_cgm_iters'] = int(arg)
             elif opt == "--trials_file": param_dict['trials_file'] = arg
     else:
         print(__doc__)
@@ -199,16 +202,20 @@ def prscs_wrapper(param_dict):
                 elif param_dict['use_cgm'] == 'True':
                     sampler_type = 'nonpreconditioned_cgm'
             
-            error_tolerance = ''
+            error_tolerance_name = ''
             if param_dict['err_tol'] is not None:
-                error_tolerance = '_' + str(param_dict['err_tol'])
+                error_tolerance_name = '_err=' + str(param_dict['err_tol'])
+            
+            max_iters_name = ''
+            if param_dict['max_cgm_iters'] is not None:
+                max_iters_name = '_maxCGMiters=' + str(param_dict['max_cgm_iters'])
 
-            filename = sampler_type + error_tolerance + '.csv'
+            filename = sampler_type + error_tolerance_name + max_iters_name + '.csv'
             mvn_output_file = os.path.join(param_dict['mvn_dir'], filename)
 
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
             param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'], param_dict['seed'],
-            param_dict['use_cgm'], param_dict['err_tol'], mvn_output_file=mvn_output_file)
+            param_dict['use_cgm'], param_dict['err_tol'], param_dict['max_cgm_iters'], mvn_output_file=mvn_output_file)
     logging.info('=== Done with PRScs ===')
 
 def main():
@@ -230,13 +237,14 @@ def main():
             reader = csv.reader(f)
             header = next(reader)
             for line in reader:
-                use_cgm, err_tol, n_trials = line
+                use_cgm, err_tol, max_cgm_iters, n_trials = line
                 err_tol = float(err_tol) if err_tol != 'None' else None
                 n_trials = int(n_trials)
                 # create copy of param dict for each trial
                 trial_param_dict = {**param_dict}
                 trial_param_dict['use_cgm'] = use_cgm
                 trial_param_dict['err_tol'] = err_tol
+                trial_param_dict['max_cgm_iters'] = max_cgm_iters
                 for _ in range(n_trials):
                     prscs_wrapper(trial_param_dict)
     else:
