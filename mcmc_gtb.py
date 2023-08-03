@@ -47,7 +47,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             logging.info('No error tolerance set.')
         
         if max_cgm_iters is not None:
-            logging.info('Maximum number of CGM iterations allowed is %d' % max_cgm_iters)
+            logging.info('Maximum number of CGM iterations allowed is %d' % int(max_cgm_iters))
         else:
             logging.info('No max number of CGM iterations set; allowed to run to completion')
 
@@ -188,9 +188,13 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     cgm_type = 'vanilla' if use_cgm == 'False' else 'cgm' if use_cgm == 'True' else 'precondcgm'
 
-    errtol_string = 'exact'
+    errtol_string = ''
     if error_tolerance is not None and error_tolerance != 0.0:
-        errtol_string = 'errtol' + str(error_tolerance)
+        errtol_string = '_errtol=' + str(error_tolerance)
+    
+    cgm_iters_string = ''
+    if max_cgm_iters is not None:
+        cgm_iters_string = '_maxCGMiters=' + str(max_cgm_iters)
 
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -199,7 +203,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
     else:
         filename = 'pst_eff_a%d_b%.1f_phi%1.0e_chr%d.txt' % (a, b, phi, chrom)
         
-    filename = '_'.join([timestamp, cgm_type, errtol_string, filename])
+    filename = '_'.join([timestamp, cgm_type, errtol_string, cgm_iters_string, filename])
     eff_file = os.path.join(out_dir, filename)
 
     with open(eff_file, 'w') as ff:

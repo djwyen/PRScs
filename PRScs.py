@@ -230,7 +230,7 @@ def main():
     
     logging.info('Running PRScs.py script')
     command_list = ' '.join(['--%s=%s' % (key, param_dict[key]) for key in param_dict])
-    logging.info('Features are: %s' % command_list)
+    logging.info('Features for commandline call are: %s' % command_list)
 
     if param_dict['trials_file'] is not None:
         with open(param_dict['trials_file']) as f:
@@ -239,12 +239,15 @@ def main():
             for line in reader:
                 use_cgm, err_tol, max_cgm_iters, n_trials = line
                 err_tol = float(err_tol) if err_tol != 'None' else None
+                max_cgm_iters = int(max_cgm_iters) if max_cgm_iters != 'None' else None
                 n_trials = int(n_trials)
                 # create copy of param dict for each trial
                 trial_param_dict = {**param_dict}
                 trial_param_dict['use_cgm'] = use_cgm
                 trial_param_dict['err_tol'] = err_tol
                 trial_param_dict['max_cgm_iters'] = max_cgm_iters
+                command_list = ' '.join(['--%s=%s' % (key, trial_param_dict[key]) for key in trial_param_dict])
+                logging.info('Features for this trial are: %s' % command_list)
                 for _ in range(n_trials):
                     prscs_wrapper(trial_param_dict)
     else:
