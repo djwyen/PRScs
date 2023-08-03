@@ -1,0 +1,8 @@
+use_cgm,err_tol,max_cgm_iters,n_trials
+False,None,None,1
+Precond,None,5,1
+Precond,None,10,1
+Precond,None,15,1
+Precond,None,25,1
+Precond,None,30,1
+Precond,None,35,1
