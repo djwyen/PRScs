@@ -106,27 +106,30 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 # logging.info('printing min and max of sample normal from the prec matrix')
                 # logging.info(str(np.min(sample)) + ', ' + str(np.max(sample)))
 
-
                 # sigma2 = np.squeeze(sigma) # sigma2 sometimes comes in a 2darray
-                # beta_hat = np.squeeze(beta_mrg[idx_blk])
+                beta_hat = np.squeeze(beta_mrg[idx_blk])
                 # scaled_Q = (n / sigma2)*dinvt
                 # Q_sample = math.sqrt(n / sigma2)*mvn_cgm.cholesky_sample(0, dinvt)
                 # Q_sample = np.squeeze(Q_sample)
                 # eta = Q_sample + ((n / sigma2)*beta_hat)
 
-                # if kk == 2: # which we know to be the largest, size 511
-                #     if itr == 1:
-                #         for folder in ['LD', 'psi_inv', 'sigma2', 'eta', 'beta_hat']:
-                #             path = os.path.join('sampledata/blk2/', folder)
-                #             if not os.path.exists(path):
-                #                 os.makedirs(path)
-                #         # this is identical every time
-                #         np.savetxt(f'sampledata/blk2/beta_hat/{itr}.csv', beta_hat.reshape(1, -1), delimiter=',')
-
-                #     np.savetxt(f'sampledata/blk2/LD/{itr}.csv', ld_blk[kk], delimiter=',')
-                #     np.savetxt(f'sampledata/blk2/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
-                #     np.savetxt(f'sampledata/blk2/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
-                #     np.savetxt(f'sampledata/blk2/eta/{itr}.csv', eta.reshape(1, -1), delimiter=',')
+                if kk == 2: # which we know to be the largest block, size 511
+                    if itr == 1:
+                        for folder in ['LD', 'psi_inv', 'sigma2', 'eta', 'beta_hat', 'beta', 'delta']:
+                            path = os.path.join('sampledata/blk2/', folder)
+                            if not os.path.exists(path):
+                                os.makedirs(path)
+                        # this is identical every time, so we save it only on the first iteration
+                        np.savetxt(f'sampledata/blk2/beta_hat/{itr}.csv', beta_hat.reshape(1, -1), delimiter=',')
+                    if itr >= n_burnin:
+                        # TODO can save more than one iteration later
+                        if itr == 888:
+                            np.savetxt(f'sampledata/blk2/LD/{itr}.csv', 0.5 * ld_blk[kk], delimiter=',')
+                            np.savetxt(f'sampledata/blk2/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
+                            np.savetxt(f'sampledata/blk2/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
+                            np.savetxt(f'sampledata/blk2/beta/{itr}.csv', beta[idx_blk], delimiter=',')
+                            np.savetxt(f'sampledata/blk2/delta/{itr}.csv', delta[idx_blk], delimiter=',')
+                            # np.savetxt(f'sampledata/blk2/eta/{itr}.csv', eta.reshape(1, -1), delimiter=',')
 
                 # try:
                 #     np.linalg.cholesky(dinvt)
@@ -146,8 +149,11 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 start = time.time()
                 beta_sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, max_cgm_iters, error_tolerance)
+                
                 end = time.time()
                 beta[idx_blk] = beta_sample
+
+                assert use_cgm == 'False' or n_iterations > 0
 
                 # (MCMC iteration #, block number, block size, time to sample, # of CGM iterations or None if vanilla)
                 if mvn_output_file is not None:
