@@ -121,7 +121,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                         # for block_folder in [f'blk{block_number}' for block_number in range(n_blk)]:
                         #     path = os.path.join('sampledata/')
 
-                        for folder in ['LD', 'psi_inv', 'sigma2', 'eta', 'beta_hat', 'beta', 'delta']:
+                        for folder in ['LD', 'psi', 'psi_inv', 'sigma2', 'eta', 'beta_hat', 'beta', 'delta']:
                             path = os.path.join('sampledata/blk2/', folder)
                             # path = os.path.join('benchmark_samples/blk2/', folder)
                             if not os.path.exists(path):
@@ -132,6 +132,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                         # TODO can save more than one iteration later
                         if itr == 888:
                             np.savetxt(f'sampledata/blk2/LD/{itr}.csv', 0.5 * ld_blk[kk], delimiter=',')
+                            np.savetxt(f'sampledata/blk2/psi/{itr}.csv', psi[idx_blk].T[0], delimiter=',')
                             np.savetxt(f'sampledata/blk2/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
                             np.savetxt(f'sampledata/blk2/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
                             np.savetxt(f'sampledata/blk2/beta/{itr}.csv', beta[idx_blk], delimiter=',')
