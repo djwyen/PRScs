@@ -192,11 +192,13 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
         delta = random.gamma(a+b, 1.0/(psi+phi))
 
+        blk2_indices = range(311,822) # hardcoded lol
+
         if itr == 888:
             benchmark_delta_samples = []
             for ii in range(N_BENCHMARK_SAMPLES):
                 delta_i = random.gamma(a+b, 1.0/(psi+phi))
-                benchmark_delta_samples.append(delta_i[idx_blk])
+                benchmark_delta_samples.append(delta_i[blk2_indices])
             benchmark_delta_samples = np.array(benchmark_delta_samples).squeeze()
             np.savetxt('benchmark_samples/blk2/delta.csv', benchmark_delta_samples, delimiter=',')
 
@@ -208,10 +210,10 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             benchmark_psi_samples = []
             for ii in range(N_BENCHMARK_SAMPLES):
                 psi_tmp = np.array([0]*p)
-                for jj in idx_blk:
+                for jj in blk2_indices:
                     psi_tmp[jj] = gigrnd.gigrnd(a-0.5, 2.0*delta[jj], n*beta[jj]**2/sigma)
                 psi_tmp[psi_tmp>1] = 1.0
-                benchmark_psi_samples.append(psi_tmp[idx_blk])
+                benchmark_psi_samples.append(psi_tmp[blk2_indices])
             np.savetxt('benchmark_samples/blk2/psi.csv', np.array(benchmark_psi_samples).squeeze(), delimiter=',')
 
         if phi_updt == True:
