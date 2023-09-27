@@ -196,7 +196,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
             benchmark_delta_samples = []
             for ii in range(N_BENCHMARK_SAMPLES):
                 delta_i = random.gamma(a+b, 1.0/(psi+phi))
-                benchmark_delta_samples.append(delta_i)
+                benchmark_delta_samples.append(delta_i[idx_blk])
             benchmark_delta_samples = np.array(benchmark_delta_samples).squeeze()
             np.savetxt('benchmark_samples/blk2/delta.csv', benchmark_delta_samples, delimiter=',')
 
