@@ -98,6 +98,7 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0]) # the precision matrix (without scaling) of the MVN of interest, i.e. (D + Psi^-1)
 
+                beta_hat = np.squeeze(beta_mrg[idx_blk])
                 # === ALL DEBUG BELOW ===
                 # logging.info('LD uncond spec cond number is ' + str(np.linalg.cond(ld_blk[kk], p=2)))
                 # precond_ldblk = np.linalg.inv(np.diag(np.diag(ld_blk[kk]))) @ ld_blk[kk]
@@ -107,35 +108,40 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 # logging.info(str(np.min(sample)) + ', ' + str(np.max(sample)))
 
                 # sigma2 = np.squeeze(sigma) # sigma2 sometimes comes in a 2darray
-                beta_hat = np.squeeze(beta_mrg[idx_blk])
                 # scaled_Q = (n / sigma2)*dinvt
                 # Q_sample = math.sqrt(n / sigma2)*mvn_cgm.cholesky_sample(0, dinvt)
                 # Q_sample = np.squeeze(Q_sample)
                 # eta = Q_sample + ((n / sigma2)*beta_hat)
 
-                if kk == 2: # which we know to be the largest block, size 511
-                    if itr == 1:
-                        # # TODO refactor to work on all blocks, not just hardcoded blk2
-                        # for block_folder in [f'blk{block_number}' for block_number in range(n_blk)]:
-                        #     path = os.path.join('sampledata/')
+                # if itr == 1:
+                #     ld_path = os.path.join(f'sampledata/blk{kk}/')
+                #     if not os.path.exists(ld_path):
+                #         os.makedirs(ld_path)
+                #     np.savetxt(f'sampledata/blk{kk}/LD.csv', ld_blk[kk], delimiter=',')
+                #     np.savetxt(f'sampledata/blk{kk}/half_LD.csv', 0.5 * ld_blk[kk], delimiter=',')
+                #     if kk == 1:
+                #         np.savetxt(f'sampledata/beta_hat.csv', beta_hat.reshape(1, -1), delimiter=',')
+                #     print(f'block {kk} has size {blk_size[kk]}')
 
-                        for folder in ['LD', 'psi', 'psi_inv', 'sigma2', 'eta', 'beta_hat', 'beta', 'delta']:
-                            path = os.path.join('sampledata/blk2/', folder)
-                            # path = os.path.join('benchmark_samples/blk2/', folder)
-                            if not os.path.exists(path):
-                                os.makedirs(path)
-                        # this is identical every time, so we save it only on the first iteration
-                        np.savetxt(f'sampledata/blk2/beta_hat/{itr}.csv', beta_hat.reshape(1, -1), delimiter=',')
-                    if itr >= n_burnin:
-                        # TODO can save more than one iteration later
-                        if itr == 888:
-                            np.savetxt(f'sampledata/blk2/LD/{itr}.csv', 0.5 * ld_blk[kk], delimiter=',')
-                            np.savetxt(f'sampledata/blk2/psi/{itr}.csv', psi[idx_blk].T[0], delimiter=',')
-                            np.savetxt(f'sampledata/blk2/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
-                            np.savetxt(f'sampledata/blk2/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
-                            np.savetxt(f'sampledata/blk2/beta/{itr}.csv', beta[idx_blk], delimiter=',')
-                            np.savetxt(f'sampledata/blk2/delta/{itr}.csv', delta[idx_blk], delimiter=',')
-                            # np.savetxt(f'sampledata/blk2/eta/{itr}.csv', eta.reshape(1, -1), delimiter=',')
+                if itr == 1:
+                    for folder in ['psi', 'psi_inv', 'sigma2', 'beta', 'delta']:
+                        path = os.path.join(f'sampledata/blk{kk}/', folder)
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                    np.savetxt(f'sampledata/blk{kk}/LD.csv', ld_blk[kk], delimiter=',')
+                    np.savetxt(f'sampledata/blk{kk}/half_LD.csv', 0.5 * ld_blk[kk], delimiter=',')
+                    if kk == 1:
+                        # this is identical every time, so we save it only on the first iteration, and only once
+                        np.savetxt(f'sampledata/beta_hat.csv', beta_hat.reshape(1, -1), delimiter=',')
+
+                if itr >= n_burnin:
+                    # TODO can save more than one iteration later
+                    if itr == 888:
+                        np.savetxt(f'sampledata/blk{kk}/psi/{itr}.csv', psi[idx_blk].T[0], delimiter=',')
+                        np.savetxt(f'sampledata/blk{kk}/psi_inv/{itr}.csv', 1.0/psi[idx_blk].T[0], delimiter=',')
+                        np.savetxt(f'sampledata/blk{kk}/sigma2/{itr}.csv', np.reshape(sigma, (1, 1)), delimiter=',')
+                        np.savetxt(f'sampledata/blk{kk}/beta/{itr}.csv', beta[idx_blk], delimiter=',')
+                        np.savetxt(f'sampledata/blk{kk}/delta/{itr}.csv', delta[idx_blk], delimiter=',')
 
                 # try:
                 #     np.linalg.cholesky(dinvt)
