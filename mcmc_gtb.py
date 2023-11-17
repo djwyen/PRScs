@@ -98,7 +98,6 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0]) # the precision matrix (without scaling) of the MVN of interest, i.e. (D + Psi^-1)
 
-                beta_hat = np.squeeze(beta_mrg[idx_blk])
                 # === ALL DEBUG BELOW ===
                 # logging.info('LD uncond spec cond number is ' + str(np.linalg.cond(ld_blk[kk], p=2)))
                 # precond_ldblk = np.linalg.inv(np.diag(np.diag(ld_blk[kk]))) @ ld_blk[kk]
@@ -128,11 +127,12 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                         path = os.path.join(f'sample_PRScs_data/blk{kk}/', folder)
                         if not os.path.exists(path):
                             os.makedirs(path)
+                    
                     np.savetxt(f'sample_PRScs_data/blk{kk}/LD.csv', ld_blk[kk], delimiter=',')
                     np.savetxt(f'sample_PRScs_data/blk{kk}/half_LD.csv', 0.5 * ld_blk[kk], delimiter=',')
-                    if kk == 1:
-                        # this is identical every time, so we save it only on the first iteration, and only once
-                        np.savetxt(f'sample_PRScs_data/beta_hat.csv', beta_hat.reshape(1, -1), delimiter=',')
+                    
+                    beta_hat = np.squeeze(beta_mrg[idx_blk])
+                    np.savetxt(f'sample_PRScs_data/blk{kk}/beta_hat.csv', beta_hat.reshape(1, -1), delimiter=',')
 
                 if itr >= n_burnin:
                     # TODO can save more than one iteration later
