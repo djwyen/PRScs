@@ -19,8 +19,6 @@ import time
 import csv
 import os
 
-N_BENCHMARK_SAMPLES = 1000
-
 
 def sample_mvn(unscaled_Q, beta_hat, sigma, n, d, use_cgm, max_iterations, error_tolerance):
     if use_cgm == 'False':
@@ -157,15 +155,6 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
                 start = time.time()
                 beta_sample, n_iterations = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, max_cgm_iters, error_tolerance)
-                
-                if kk == 2 and itr == 888:
-                    benchmark_beta_samples = []
-                    for ii in range(N_BENCHMARK_SAMPLES):
-                        beta_sample_i, _ = sample_mvn(dinvt, beta_mrg[idx_blk], sigma, n, len(idx_blk), use_cgm, max_cgm_iters, error_tolerance)
-                        benchmark_beta_samples.append(beta_sample_i)
-                    benchmark_beta_samples = np.array(benchmark_beta_samples).squeeze()
-                    np.savetxt('benchmark_samples/blk2/beta.csv', benchmark_beta_samples, delimiter=',')
-                
                 end = time.time()
                 beta[idx_blk] = beta_sample
 
@@ -183,38 +172,11 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         err = max(n/2.0*(1.0-2.0*sum(beta*beta_mrg)+quad), n/2.0*sum(beta**2/psi))
         sigma = 1.0/random.gamma((n+p)/2.0, 1.0/err)
 
-        if itr == 888:
-            benchmark_sigma_samples = []
-            for ii in range(N_BENCHMARK_SAMPLES):
-                sigma_i = 1.0/random.gamma((n+p)/2.0, 1.0/err)
-                benchmark_sigma_samples.append(sigma_i)
-            np.savetxt('benchmark_samples/blk2/sigma2.csv', np.array(benchmark_sigma_samples).squeeze(), delimiter=',')
-
         delta = random.gamma(a+b, 1.0/(psi+phi))
-
-        blk2_indices = range(311,822) # hardcoded lol
-
-        if itr == 888:
-            benchmark_delta_samples = []
-            for ii in range(N_BENCHMARK_SAMPLES):
-                delta_i = random.gamma(a+b, 1.0/(psi+phi))
-                benchmark_delta_samples.append(delta_i[blk2_indices])
-            benchmark_delta_samples = np.array(benchmark_delta_samples).squeeze()
-            np.savetxt('benchmark_samples/blk2/delta.csv', benchmark_delta_samples, delimiter=',')
 
         for jj in range(p):
             psi[jj] = gigrnd.gigrnd(a-0.5, 2.0*delta[jj], n*beta[jj]**2/sigma)
         psi[psi>1] = 1.0
-
-        if itr == 888:
-            benchmark_psi_samples = []
-            for ii in range(N_BENCHMARK_SAMPLES):
-                psi_tmp = np.array([0]*p)
-                for jj in blk2_indices:
-                    psi_tmp[jj] = gigrnd.gigrnd(a-0.5, 2.0*delta[jj], n*beta[jj]**2/sigma)
-                psi_tmp[psi_tmp>1] = 1.0
-                benchmark_psi_samples.append(psi_tmp[blk2_indices])
-            np.savetxt('benchmark_samples/blk2/psi.csv', np.array(benchmark_psi_samples).squeeze(), delimiter=',')
 
         if phi_updt == True:
             w = random.gamma(1.0, 1.0/(phi+1.0))
