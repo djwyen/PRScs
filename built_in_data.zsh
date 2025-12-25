@@ -1,1 +1,1 @@
-python PRScs.py --ref_dir=data/ldblk_1kg_eur --bim_prefix=test_data/test --sst_file=test_data/sumstats.txt --n_gwas=200000 --chrom=22 --phi=1e-2 --use_cgm False --n_iter=1000 --n_burnin=500 --out_dir=output/sep20problemgeneration --log_file=logs/sep20problemgeneration --seed=1
+python PRScs.py --ref_dir=data/ldblk_1kg_eur --bim_prefix=test_data/test --sst_file=test_data/sumstats.txt --n_gwas=200000 --chrom=22 --phi=1e-2 --use_cgm=False --n_iter=1000 --n_burnin=500 --out_dir=output/dec8benchmark --log_file=logs/dec8benchmark --seed=10 --beta_std=True

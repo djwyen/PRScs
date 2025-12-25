@@ -1,6 +1,7 @@
 """
 Quick script to calculate the times/avg iterations recorded for each sample from PRScs, put them into a dataframe to be workable, and plot them.
 TODO refactor so that we can automatically switch to bar plots when we detect just a single blocksize
+TODO refactor so that you pass in the CSV_DIR, VANILLA_CSV, and BURN_IN as commandline arguments
 """
 import csv
 import os
@@ -11,7 +12,7 @@ import matplotlib as mpl
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import math
 
-CSV_DIR = 'mvn_csvs/prscs_test_data'
+CSV_DIR = 'mvn_csvs/prscs_test_data2'
 VANILLA_CSV = 'vanilla.csv'
 BURN_IN = 500 # discards the first BURN_IN many samples in computing the time
 
@@ -46,7 +47,7 @@ def calculate_stats(filepath):
             blkno_to_times[block_number].append(sampling_time)
             if n_iterations is not None:
                 blkno_to_n_iterations[block_number].append(n_iterations)
-    
+
     blkno_to_avgtime = {blkno: sum(times) / len(times) for blkno, times in blkno_to_times.items()}
     if n_iterations is not None:
         blkno_to_avgiters = {blkno: sum(iters) / len(iters) for blkno, iters in blkno_to_n_iterations.items()}
@@ -80,6 +81,7 @@ def main():
 
 
     for filename in os.listdir(CSV_DIR):
+        # TODO the below is all broken since I changed filenames on August 3. This sort of code is never that future proof anyway.
         if 'vanilla' in filename:
             # we loaded up vanilla separately
             continue
@@ -123,7 +125,7 @@ def main():
     nonprecond_avgiters = sort_dataframe(nonprecond_avgiters)
 
 
-    # BELOW: for plotting multiple block sizes (as a graph)
+    # # BELOW: for plotting multiple block sizes (as a graph)
     # # data is now in a very convenient form for plotting
     # # colormap for being able to scale the lines sensibly
     # palette = mpl.colormaps['tab10'].resampled(5)
@@ -167,7 +169,7 @@ def main():
 
 
     # BELOW: for plotting a single blocksize (as a bar chart)
-    errs = [1e-3, 1e-5, 1e-7, 1e-8]
+    errs = [1e-3, 1e-5, 1e-7, 1e-9]
     N = len(errs)
     PRSCS_TEST_BLOCKSIZE = 597
 

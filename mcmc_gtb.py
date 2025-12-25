@@ -175,7 +175,13 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
                 quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
                 mm += blk_size[kk]
 
-        err = max(n/2.0*(1.0-2.0*sum(beta*beta_mrg)+quad), n/2.0*sum(beta**2/psi))
+        err_term1 = n/2.0*(1.0-2.0*sum(beta*beta_mrg)+quad)
+        err_term2 = n/2.0*sum(beta**2/psi)
+        if err_term1 < 0:
+            print("ERR TERM 1 less than zero")
+        if err_term2 < 0:
+            print("ERR TERM 2 less than zero")
+        err = max(err_term1, err_term2)
         sigma = 1.0/random.gamma((n+p)/2.0, 1.0/err)
 
         delta = random.gamma(a+b, 1.0/(psi+phi))
